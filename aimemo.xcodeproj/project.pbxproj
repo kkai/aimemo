@@ -6,13 +6,33 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2A27E2162E7521AA002CE292 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
+		2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, xros, ); productRef = 2A27E2182E75227E002CE292 /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2AB3CD6A2E7473A400D00BF9 /* aimemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = aimemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2A27E23D2E75299D002CE292 /* Exceptions for "aimemo" folder in "aimemo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Resources/models/.gitignore,
+				Resources/samples/.gitignore,
+			);
+			target = 2AB3CD692E7473A400D00BF9 /* aimemo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2AB3CD6C2E7473A400D00BF9 /* aimemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2A27E23D2E75299D002CE292 /* Exceptions for "aimemo" folder in "aimemo" target */,
+			);
 			path = aimemo;
 			sourceTree = "<group>";
 		};
@@ -23,6 +43,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */,
+				2A27E2162E7521AA002CE292 /* whisper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +87,8 @@
 			);
 			name = aimemo;
 			packageProductDependencies = (
+				2A27E2152E7521AA002CE292 /* whisper */,
+				2A27E2182E75227E002CE292 /* GoogleMobileAds */,
 			);
 			productName = aimemo;
 			productReference = 2AB3CD6A2E7473A400D00BF9 /* aimemo.app */;
@@ -94,6 +118,10 @@
 			);
 			mainGroup = 2AB3CD612E7473A400D00BF9;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2A27E2142E7521AA002CE292 /* XCLocalSwiftPackageReference "whisper.cpp" */,
+				2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2AB3CD6B2E7473A400D00BF9 /* Products */;
 			projectDirPath = "";
@@ -252,7 +280,8 @@
 				DEVELOPMENT_TEAM = 8H42EZRCCP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = aimemo/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -291,7 +320,8 @@
 				DEVELOPMENT_TEAM = 8H42EZRCCP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = aimemo/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -341,6 +371,36 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2A27E2142E7521AA002CE292 /* XCLocalSwiftPackageReference "whisper.cpp" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = whisper.cpp;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.11.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2A27E2152E7521AA002CE292 /* whisper */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = whisper;
+		};
+		2A27E2182E75227E002CE292 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2AB3CD622E7473A400D00BF9 /* Project object */;
 }
