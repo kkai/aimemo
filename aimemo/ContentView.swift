@@ -7,7 +7,7 @@
 
 import SwiftUI
 import AVFoundation
-#if os(iOS)
+#if AIMEMO_ADS_VERSION && os(iOS)
 import GoogleMobileAds
 #elseif os(macOS)
 import AppKit
@@ -22,7 +22,7 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
        
             VStack(alignment: .center)  {
-                #if os(iOS)
+                #if AIMEMO_ADS_VERSION && os(iOS)
                 HStack {
                     Spacer()
                     GADBannerViewController()
@@ -35,7 +35,7 @@ struct ContentView: View {
                     .foregroundStyle(.white).padding()
                 Text("Start recording speech to convert it to text. Longer recordings might take a while to convert.")
                     .foregroundStyle(.white).padding()
-                #if os(iOS)
+                #if AIMEMO_ADS_VERSION && os(iOS)
                 Text("[Get ai-Memo Pro with no ads](https://apps.apple.com/app/ai-memo-pro/id6503480155)").foregroundStyle(.blue).padding()
                 #endif
                 

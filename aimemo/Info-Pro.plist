@@ -7,7 +7,7 @@
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleDisplayName</key>
-	<string>ai-Memo</string>
+	<string>ai-Memo Pro</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CFBundleShortVersionString</key>
@@ -22,7 +22,5 @@
 	<dict/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access to record speech for voice-to-text transcription.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-5970391288492190~6128782627</string>
 </dict>
 </plist>

@@ -5,15 +5,13 @@
 //  Created by kai on 2024/05/25.
 //
 
-#if os(iOS)
+#if AIMEMO_ADS_VERSION && os(iOS)
 import GoogleMobileAds
-#endif
-import SwiftUI
-#if os(iOS)
 import UIKit
 #endif
+import SwiftUI
 
-#if os(iOS)
+#if AIMEMO_ADS_VERSION && os(iOS)
 struct GADBannerViewController: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let view = BannerView(adSize: AdSizeBanner)
