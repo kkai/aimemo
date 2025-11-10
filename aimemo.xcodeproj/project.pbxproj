@@ -9,10 +9,12 @@
 /* Begin PBXBuildFile section */
 		2A27E2162E7521AA002CE292 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
 		2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, xros, ); productRef = 2A27E2182E75227E002CE292 /* GoogleMobileAds */; };
+		2AB3CE0B2E7473A400D00BF9 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2AB3CD6A2E7473A400D00BF9 /* aimemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = aimemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "aimemo-pro.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -25,6 +27,15 @@
 			);
 			target = 2AB3CD692E7473A400D00BF9 /* aimemo */;
 		};
+		2AB3CE0C2E7473A400D00BF9 /* Exceptions for "aimemo" folder in "aimemo-pro" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Resources/models/.gitignore,
+				Resources/samples/.gitignore,
+			);
+			target = 2AB3CE092E7473A400D00BF9 /* aimemo-pro */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +43,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				2A27E23D2E75299D002CE292 /* Exceptions for "aimemo" folder in "aimemo" target */,
+				2AB3CE0C2E7473A400D00BF9 /* Exceptions for "aimemo" folder in "aimemo-pro" target */,
 			);
 			path = aimemo;
 			sourceTree = "<group>";
@@ -45,6 +57,14 @@
 			files = (
 				2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */,
 				2A27E2162E7521AA002CE292 /* whisper in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2AB3CE062E7473A400D00BF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AB3CE0B2E7473A400D00BF9 /* whisper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				2AB3CD6A2E7473A400D00BF9 /* aimemo.app */,
+				2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,6 +113,29 @@
 			);
 			productName = aimemo;
 			productReference = 2AB3CD6A2E7473A400D00BF9 /* aimemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2AB3CE092E7473A400D00BF9 /* aimemo-pro */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2AB3CE0F2E7473A600D00BF9 /* Build configuration list for PBXNativeTarget "aimemo-pro" */;
+			buildPhases = (
+				2AB3CE042E7473A400D00BF9 /* Sources */,
+				2AB3CE062E7473A400D00BF9 /* Frameworks */,
+				2AB3CE052E7473A400D00BF9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2AB3CD6C2E7473A400D00BF9 /* aimemo */,
+			);
+			name = "aimemo-pro";
+			packageProductDependencies = (
+				2A27E2152E7521AA002CE292 /* whisper */,
+			);
+			productName = "aimemo-pro";
+			productReference = 2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -128,6 +172,7 @@
 			projectRoot = "";
 			targets = (
 				2AB3CD692E7473A400D00BF9 /* aimemo */,
+				2AB3CE092E7473A400D00BF9 /* aimemo-pro */,
 			);
 		};
 /* End PBXProject section */
@@ -140,10 +185,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2AB3CE052E7473A400D00BF9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2AB3CD662E7473A400D00BF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2AB3CE042E7473A400D00BF9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -272,7 +331,7 @@
 		2AB3CD772E7473A600D00BF9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = aimemo/aimemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -312,7 +371,7 @@
 		2AB3CD782E7473A600D00BF9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = aimemo/aimemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -349,6 +408,86 @@
 			};
 			name = Release;
 		};
+		2AB3CE0D2E7473A600D00BF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconPro;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = aimemo/aimemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H42EZRCCP;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = aimemo/Info.pro.plist;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Debug;
+		};
+		2AB3CE0E2E7473A600D00BF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconPro;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = aimemo/aimemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H42EZRCCP;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = aimemo/Info.pro.plist;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -366,6 +505,15 @@
 			buildConfigurations = (
 				2AB3CD772E7473A600D00BF9 /* Debug */,
 				2AB3CD782E7473A600D00BF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2AB3CE0F2E7473A600D00BF9 /* Build configuration list for PBXNativeTarget "aimemo-pro" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2AB3CE0D2E7473A600D00BF9 /* Debug */,
+				2AB3CE0E2E7473A600D00BF9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

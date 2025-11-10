@@ -6,14 +6,16 @@
 //
 
 #if os(iOS)
+#if canImport(GoogleMobileAds)
 import GoogleMobileAds
+#endif
 #endif
 import SwiftUI
 #if os(iOS)
 import UIKit
 #endif
 
-#if os(iOS)
+#if os(iOS) && canImport(GoogleMobileAds)
 struct GADBannerViewController: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let view = BannerView(adSize: AdSizeBanner)
