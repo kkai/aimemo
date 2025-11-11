@@ -1,4 +1,5 @@
 import AVFoundation
+import SwiftData
 
 
 //@MainActor
@@ -18,14 +19,18 @@ class RealTimeWhisper {
     private var audioBuffer: AVAudioPCMBuffer?
     private var lastBuffer: AVAudioPCMBuffer?
     private var audioPlayer: AVAudioPlayer?
-    
+
     private let outputFormat: AVAudioFormat
     private var formatConverter: AVAudioConverter?
-    
+
     private var dataFloats = [Float]()
-    
-    
+
+
     private var whisperContext: WhisperContext?
+
+    // Recording metadata for auto-save
+    private var recordingStartTime: Date?
+    var modelContext: ModelContext?
     
     init() {
         var modelUrl: URL? {
@@ -63,11 +68,15 @@ class RealTimeWhisper {
     }
     
     func startRealTimeProcessingAndPlayback() throws {
+        // Record start time for auto-save
+        recordingStartTime = Date()
+        dataFloats = []  // Clear previous recording data
+
         #if os(iOS)
         try audioSession.setCategory(.playAndRecord, mode: .default)
-        
+
         // 请求录音权限
-        
+
         AVAudioApplication.requestRecordPermission { granted in
             if granted {
                 // Permission is granted
@@ -197,6 +206,37 @@ class RealTimeWhisper {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         audioLevels = []
+
+        // Auto-save recording if there's transcribed text
+        saveRecording()
+    }
+
+    private func saveRecording() {
+        // Only save if we have a model context, text, and start time
+        guard let modelContext = modelContext,
+              !transcribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let startTime = recordingStartTime else {
+            return
+        }
+
+        // Calculate duration
+        let duration = Date().timeIntervalSince(startTime)
+
+        // Create and save recording
+        let recording = Recording(
+            timestamp: startTime,
+            duration: duration,
+            transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+
+        modelContext.insert(recording)
+
+        do {
+            try modelContext.save()
+            print("Recording auto-saved: \(recording.displayTitle)")
+        } catch {
+            print("Error saving recording: \(error.localizedDescription)")
+        }
     }
     
     private func transcribeData(_ data: [Float]) async {

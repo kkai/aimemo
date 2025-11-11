@@ -6,15 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct aimemoApp: App {
-    @State private var audioProcessor = RealTimeWhisper()
-    
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environment(audioProcessor)
-        }
+  @State private var audioProcessor = RealTimeWhisper()
+
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+        .environment(audioProcessor)
     }
+    .modelContainer(for: Recording.self)
+  }
 }
