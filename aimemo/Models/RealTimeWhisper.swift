@@ -8,7 +8,9 @@ class RealTimeWhisper {
     var transcribedText = ""
     var canTranscribe = false
     var canStop = false
-    
+    var audioLevels: [Float] = []
+
+    private let maxAudioLevels = 100
     private let audioEngine = AVAudioEngine()
     #if os(iOS)
     private let audioSession = AVAudioSession.sharedInstance()
@@ -82,6 +84,13 @@ class RealTimeWhisper {
                     inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, time in
                         DispatchQueue.main.async {
                             do {
+                                // Calculate and store amplitude for visualization
+                                let amplitude = self.calculateAmplitude(from: buffer)
+                                self.audioLevels.append(amplitude)
+                                if self.audioLevels.count > self.maxAudioLevels {
+                                    self.audioLevels.removeFirst()
+                                }
+
                                 let duration = Double(buffer.frameCapacity) / buffer.format.sampleRate
                                 let outputBufferCapacity = AVAudioFrameCount(self.outputFormat.sampleRate * duration)
                                 let outputBuffer = AVAudioPCMBuffer(
@@ -109,7 +118,7 @@ class RealTimeWhisper {
                                     default: break
                                 }
                                 self.formatConverter?.reset()
-                                
+
                                 let oneFloat = try self.decodePCMBuffer(outputBuffer)
                                 self.dataFloats += oneFloat
                                 let tempDateFloats = self.dataFloats
@@ -147,12 +156,12 @@ class RealTimeWhisper {
         guard let floatChannelData = buffer.floatChannelData else {
             throw NSError(domain: "Invalid PCM Buffer", code: 0, userInfo: nil)
         }
-        
+
         let channelCount = Int(buffer.format.channelCount)
         let frameLength = Int(buffer.frameLength)
-        
+
         var floats = [Float]()
-        
+
         for frame in 0..<frameLength {
             for channel in 0..<channelCount {
                 let floatData = floatChannelData[channel]
@@ -161,13 +170,33 @@ class RealTimeWhisper {
                 floats.append(max(-1.0, min(floatSample, 1.0)))
             }
         }
-        
+
         return floats
+    }
+
+    private func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
+        guard let channelData = buffer.floatChannelData else { return 0.0 }
+
+        let channelDataValue = channelData.pointee
+        let channelDataValueArray = stride(
+            from: 0,
+            to: Int(buffer.frameLength),
+            by: buffer.stride
+        ).map { channelDataValue[$0] }
+
+        // Calculate RMS (Root Mean Square) for amplitude
+        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(channelDataValueArray.count))
+
+        // Normalize and apply some scaling for better visualization
+        let normalizedLevel = min(rms * 10, 1.0)
+
+        return normalizedLevel
     }
     
     func stopRecord() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
+        audioLevels = []
     }
     
     private func transcribeData(_ data: [Float]) async {
