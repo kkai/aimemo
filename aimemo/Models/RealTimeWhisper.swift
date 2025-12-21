@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftData
+import Speech
 
 
 //@MainActor
@@ -10,6 +11,11 @@ class RealTimeWhisper {
     var canTranscribe = false
     var canStop = false
     var audioLevels: [Float] = []
+    var currentModel: WhisperModel = .selected
+    var currentEngine: TranscriptionEngine = .selected
+
+    // Apple Speech recognizer (used when engine is .appleSpeech)
+    private var appleSpeechRecognizer: AppleSpeechRecognizer?
 
     private let maxAudioLevels = 100
     private let audioEngine = AVAudioEngine()
@@ -33,30 +39,6 @@ class RealTimeWhisper {
     var modelContext: ModelContext?
     
     init() {
-        var modelUrl: URL? {
-            // Try multiple locations to find the model
-            if let url = Bundle.main.url(forResource: "ggml-tiny.en", withExtension: "bin", subdirectory: "models") {
-                return url
-            } else if let url = Bundle.main.url(forResource: "ggml-tiny.en", withExtension: "bin", subdirectory: "Resources/models") {
-                return url
-            } else if let url = Bundle.main.url(forResource: "ggml-tiny.en", withExtension: "bin") {
-                return url
-            }
-            return nil
-        }
-        do {
-            if let path = modelUrl {
-                self.whisperContext = try WhisperContext(path: path)
-                print("Loaded model \(path.lastPathComponent)\n")
-            } else {
-                print("Could not locate model")
-            }
-            
-            self.canTranscribe = true
-        } catch {
-            print(error.localizedDescription)
-        }
-        
         // Initialize output format
         /// Output format required by Whisper. This is mono 16khz Float32 PCM formatted audio.
         self.outputFormat = AVAudioFormat(
@@ -65,6 +47,61 @@ class RealTimeWhisper {
             channels: 1,
             interleaved: true
         )!  // We know this format works, so we can assert here.
+
+        // Load the selected model
+        do {
+            let selectedModel = WhisperModel.selected
+            if let modelUrl = findModelURL(for: selectedModel) {
+                self.whisperContext = try WhisperContext(path: modelUrl)
+                self.currentModel = selectedModel
+                print("Loaded model \(selectedModel.displayName) (\(modelUrl.lastPathComponent))\n")
+            } else {
+                print("Could not locate \(selectedModel.displayName) model")
+            }
+
+            self.canTranscribe = true
+        } catch {
+            print("Error loading model: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Model Management
+
+    /// Find the URL for a given model in the bundle
+    private func findModelURL(for model: WhisperModel) -> URL? {
+        let fileName = model.fileName
+
+        // Try multiple locations to find the model
+        if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin", subdirectory: "models") {
+            return url
+        } else if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin", subdirectory: "Resources/models") {
+            return url
+        } else if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin") {
+            return url
+        }
+
+        return nil
+    }
+
+    /// Load a different Whisper model
+    func loadModel(_ model: WhisperModel) async throws {
+        guard let modelUrl = findModelURL(for: model) else {
+            throw NSError(
+                domain: "RealTimeWhisper",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Model file '\(model.fileName)' not found in bundle"]
+            )
+        }
+
+        // Create new context with the selected model
+        let newContext = try WhisperContext(path: modelUrl)
+
+        // Update the context and current model
+        await MainActor.run {
+            self.whisperContext = newContext
+            self.currentModel = model
+            print("Switched to model \(model.displayName) (\(modelUrl.lastPathComponent))\n")
+        }
     }
     
     func startRealTimeProcessingAndPlayback() throws {
@@ -72,6 +109,59 @@ class RealTimeWhisper {
         recordingStartTime = Date()
         dataFloats = []  // Clear previous recording data
 
+        // Check which engine to use
+        if currentEngine == .appleSpeech {
+            // Use Apple Speech Recognition
+            if appleSpeechRecognizer == nil {
+                appleSpeechRecognizer = AppleSpeechRecognizer()
+            }
+
+            // Request authorization if needed
+            if let recognizer = appleSpeechRecognizer,
+               recognizer.authorizationStatus != .authorized {
+                Task {
+                    let authorized = await recognizer.requestAuthorization()
+                    if authorized {
+                        do {
+                            try recognizer.startRecording()
+                        } catch {
+                            print("Error starting Apple Speech recording: \(error.localizedDescription)")
+                            await MainActor.run {
+                                self.transcribedText = "Error starting recording: \(error.localizedDescription)"
+                            }
+                        }
+                    } else {
+                        await MainActor.run {
+                            self.transcribedText = "Speech recognition permission denied. Please enable in Settings."
+                        }
+                    }
+                }
+            } else {
+                // Already authorized, start recording directly
+                do {
+                    try appleSpeechRecognizer?.startRecording()
+                    print("Apple Speech recording started successfully")
+                } catch {
+                    print("Error starting Apple Speech recording: \(error.localizedDescription)")
+                    transcribedText = "Error starting recording: \(error.localizedDescription)"
+                }
+            }
+
+            // Sync transcription and audio levels
+            Task { @MainActor in
+                while canStop {
+                    if let recognizer = appleSpeechRecognizer {
+                        transcribedText = recognizer.transcribedText
+                        audioLevels = recognizer.audioLevels
+                    }
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                }
+            }
+
+            return
+        }
+
+        // Otherwise use Whisper (existing code)
         #if os(iOS)
         try audioSession.setCategory(.playAndRecord, mode: .default)
 
@@ -203,12 +293,21 @@ class RealTimeWhisper {
     }
     
     func stopRecord() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        audioLevels = []
+        // Stop based on current engine
+        if currentEngine == .appleSpeech {
+            appleSpeechRecognizer?.stopRecording()
+            audioLevels = []
+        } else {
+            // Whisper engine
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+            audioLevels = []
+        }
 
-        // Auto-save recording if there's transcribed text
+        // Auto-save recording if there's transcribed text (Pro only)
+        #if PRO_VERSION
         saveRecording()
+        #endif
     }
 
     private func saveRecording() {

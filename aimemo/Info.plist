@@ -22,6 +22,8 @@
 	<dict/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access to record speech for voice-to-text transcription.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses speech recognition to transcribe your voice recordings to text when using Apple Speech engine.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-5970391288492190~6128782627</string>
 </dict>

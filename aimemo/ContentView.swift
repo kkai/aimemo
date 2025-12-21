@@ -16,6 +16,7 @@ struct ContentView: View {
   @State private var selectedRecording: Recording?
   @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
   @State private var showingHistory = false
+  @State private var showingSettings = false
 
   var body: some View {
     Group {
@@ -28,10 +29,20 @@ struct ContentView: View {
             }
             .toolbar {
               ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                  showingHistory = true
-                } label: {
-                  Label("History", systemImage: "folder")
+                HStack(spacing: 16) {
+                  #if PRO_VERSION
+                  Button {
+                    showingHistory = true
+                  } label: {
+                    Label("History", systemImage: "folder")
+                  }
+                  #endif
+
+                  Button {
+                    showingSettings = true
+                  } label: {
+                    Label("Settings", systemImage: "gear")
+                  }
                 }
               }
             }
@@ -46,6 +57,10 @@ struct ContentView: View {
                     }
                   }
               }
+            }
+            .sheet(isPresented: $showingSettings) {
+              SettingsView()
+                .environment(audioProcessor)
             }
         }
       } else {

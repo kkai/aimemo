@@ -15,7 +15,7 @@ import SwiftUI
 import UIKit
 #endif
 
-#if os(iOS) && canImport(GoogleMobileAds)
+#if os(iOS) && canImport(GoogleMobileAds) && !PRO_VERSION
 struct GADBannerViewController: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let view = BannerView(adSize: AdSizeBanner)
