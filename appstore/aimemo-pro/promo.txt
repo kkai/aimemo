@@ -1,0 +1,1 @@
+Voice to text with dual AI engines. Choose Whisper for accuracy or Apple Speech for speed. All on-device, fully private.

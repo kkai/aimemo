@@ -1,0 +1,1 @@
+voice,memo,transcription,whisper,speech,text,recording,AI,dictation,notes,offline,private

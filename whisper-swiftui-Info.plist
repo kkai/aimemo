@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-5970391288492190~6128782627</string>
+	<string>$(GAD_APP_ID)</string>
 </dict>
 </plist>

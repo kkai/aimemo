@@ -1,0 +1,19 @@
+ai-Memo transforms your voice into accurate text using advanced on-device AI. Choose between two powerful transcription engines to match your needs.
+
+DUAL ENGINE TRANSCRIPTION
+Switch between Whisper AI and Apple Speech with a single tap:
+
+- Whisper AI: Industry-leading accuracy powered by OpenAI's whisper.cpp, running entirely on your device. Ideal for interviews, meetings, and technical discussions.
+- Apple Speech: Fast recognition with multi-language support. Perfect for quick notes and everyday use.
+
+PRIVACY FIRST
+All transcription happens on your device. Your voice data never leaves your iPhone or iPad. No internet connection required for Whisper models.
+
+KEY FEATURES
+- Real-time waveform visualization
+- Live text display as you speak
+- One-tap copy to clipboard
+- Dark-themed minimal interface
+- Metal GPU acceleration for fast processing
+
+Upgrade to ai-Memo Pro for recording history, multiple Whisper model sizes, and an ad-free experience.
