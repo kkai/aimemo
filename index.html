@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai-Memo — Voice to Text, On Device, Fully Private</title>
+  <meta name="description" content="ai-Memo transforms your voice into text using dual AI engines — Whisper for accuracy, Apple Speech for speed. All processing happens on your device. No cloud, no accounts, no tracking.">
+  <meta name="theme-color" content="#1A0505">
+  <link rel="canonical" href="https://kaikunze.de/aimemo/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ai-Memo — Voice to Text, On Device, Fully Private">
+  <meta property="og:description" content="Dual AI transcription engines on your iPhone and iPad. Whisper for accuracy, Apple Speech for speed. Fully offline, fully private.">
+  <meta property="og:url" content="https://kaikunze.de/aimemo/">
+  <meta property="og:image" content="https://kaikunze.de/aimemo/images/icon.png">
+  <meta property="og:site_name" content="ai-Memo">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ai-Memo — Voice to Text, On Device, Fully Private">
+  <meta name="twitter:description" content="Dual AI transcription engines on your iPhone and iPad. Whisper for accuracy, Apple Speech for speed. Fully offline, fully private.">
+  <meta name="twitter:image" content="https://kaikunze.de/aimemo/images/icon.png">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ai-Memo",
+    "operatingSystem": "iOS",
+    "applicationCategory": "UtilitiesApplication",
+    "description": "Voice to text with dual AI engines. Choose Whisper for accuracy or Apple Speech for speed. All on-device, fully private.",
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "name": "ai-Memo (Free)"
+      },
+      {
+        "@type": "Offer",
+        "price": "",
+        "priceCurrency": "USD",
+        "name": "ai-Memo Pro"
+      }
+    ],
+    "url": "https://kaikunze.de/aimemo/"
+  }
+  </script>
+
+  <style>
+    /* ========================================
+       CSS RESET & BASE
+       ======================================== */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Colors */
+      --bg-deep: #110404;
+      --bg-dark: #1A0505;
+      --bg-maroon: #2D0A0A;
+      --bg-card: #1E0808;
+      --bg-card-hover: #2A0E0E;
+      --bg-surface: #0D0202;
+
+      --text-primary: #F5F0F0;
+      --text-secondary: #A89999;
+      --text-muted: #6B5555;
+
+      --accent: #E8193B;
+      --accent-hover: #FF2246;
+      --accent-dim: rgba(232, 25, 59, 0.15);
+      --accent-glow: rgba(232, 25, 59, 0.3);
+
+      --blue: #3B82F6;
+      --green: #22C55E;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-accent: rgba(232, 25, 59, 0.2);
+
+      /* Spacing */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      --space-3xl: 4rem;
+      --space-4xl: 6rem;
+      --space-5xl: 8rem;
+
+      /* Typography */
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 40px rgba(232, 25, 59, 0.15);
+
+      /* Layout */
+      --max-width: 1200px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: clamp(1rem, 1.125vw, 1.125rem);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+    }
+
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* ========================================
+       LAYOUT
+       ======================================== */
+    .container {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+
+    section {
+      padding: clamp(3rem, 8vw, 6rem) 0;
+    }
+
+    /* ========================================
+       NAVIGATION
+       ======================================== */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(17, 4, 4, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: var(--space-md) 0;
+    }
+
+    .nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--accent);
+      color: #fff !important;
+      padding: 0.5rem 1.125rem;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-hover);
+      color: #fff !important;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) {
+      .nav-links .nav-link-text {
+        display: none;
+      }
+    }
+
+    /* ========================================
+       HERO
+       ======================================== */
+    .hero {
+      padding: clamp(4rem, 10vw, 8rem) 0 clamp(3rem, 6vw, 5rem);
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(232, 25, 59, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: var(--radius-xl);
+      margin: 0 auto var(--space-xl);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    @media (min-width: 768px) {
+      .hero-icon {
+        width: 144px;
+        height: 144px;
+        border-radius: 32px;
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw + 0.5rem, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: var(--space-md);
+      color: var(--text-primary);
+    }
+
+    .hero-tagline {
+      font-size: clamp(1.125rem, 2vw + 0.25rem, 1.5rem);
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-md);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto var(--space-2xl);
+      line-height: 1.7;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .badge-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .badge-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .app-store-badge {
+      display: inline-block;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .app-store-badge:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .app-store-badge svg {
+      height: 44px;
+      width: auto;
+    }
+
+    @media (min-width: 768px) {
+      .app-store-badge svg {
+        height: 50px;
+      }
+    }
+
+    /* ========================================
+       DUAL ENGINE
+       ======================================== */
+    .engines {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: var(--space-sm);
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 3vw + 0.5rem, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: var(--space-md);
+    }
+
+    .section-desc {
+      font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
+      color: var(--text-secondary);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: var(--space-2xl);
+    }
+
+    .engines-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+
+    @media (min-width: 768px) {
+      .engines-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-xl);
+      }
+    }
+
+    .engine-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      position: relative;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .engine-card:hover {
+      border-color: var(--border-accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .engine-badge {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.625rem;
+      border-radius: 100px;
+      margin-bottom: var(--space-md);
+    }
+
+    .engine-badge--accuracy {
+      background: rgba(232, 25, 59, 0.15);
+      color: var(--accent);
+    }
+
+    .engine-badge--speed {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--blue);
+    }
+
+    .engine-card h3 {
+      font-size: 1.375rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-sm);
+    }
+
+    .engine-card p {
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      margin-bottom: var(--space-lg);
+    }
+
+    .engine-stat {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-sm);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--border);
+    }
+
+    .engine-stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: -0.03em;
+    }
+
+    .engine-stat-value--accent {
+      color: var(--accent);
+    }
+
+    .engine-stat-value--blue {
+      color: var(--blue);
+    }
+
+    .engine-stat-label {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .engine-usecases {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+    }
+
+    .engine-usecase {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.25rem 0.625rem;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+    }
+
+    /* ========================================
+       FEATURES GRID
+       ======================================== */
+    .features {
+      text-align: center;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+      margin-top: var(--space-2xl);
+    }
+
+    @media (min-width: 640px) {
+      .features-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .features-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .feature-card {
+      text-align: left;
+      padding: var(--space-xl);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: border-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: var(--space-md);
+      color: var(--accent);
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: var(--space-xs);
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ========================================
+       SCREENSHOTS
+       ======================================== */
+    .screenshots {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .screenshots-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+
+    .screenshots-row {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: var(--space-lg);
+      padding: 0 var(--space-md);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .screenshots-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .screenshot-item {
+      flex: 0 0 auto;
+      width: 220px;
+      scroll-snap-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .screenshot-item:hover {
+      transform: translateY(-4px);
+    }
+
+    .screenshot-item img {
+      width: 100%;
+      height: auto;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+    }
+
+    .screenshot-label {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: var(--space-sm);
+    }
+
+    @media (min-width: 768px) {
+      .screenshot-item {
+        width: 260px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .screenshot-item {
+        width: 280px;
+      }
+      .screenshots-row {
+        gap: var(--space-xl);
+      }
+    }
+
+    /* ========================================
+       COMPARISON TABLE
+       ======================================== */
+    .comparison {
+      text-align: center;
+    }
+
+    .comparison-table-wrap {
+      overflow-x: auto;
+      margin-top: var(--space-2xl);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .comparison-table {
+      width: 100%;
+      min-width: 500px;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .comparison-table thead th {
+      padding: var(--space-lg) var(--space-md);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .comparison-table thead th:first-child {
+      text-align: left;
+    }
+
+    .comparison-table .col-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .col-header img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+    }
+
+    .col-header span {
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .comparison-table tbody td {
+      padding: var(--space-md);
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .comparison-table tbody td:first-child {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .comparison-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comparison-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .check {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 1.125rem;
+    }
+
+    .dash {
+      color: var(--text-muted);
+    }
+
+    .highlight-cell {
+      color: var(--accent) !important;
+      font-weight: 600;
+    }
+
+    .price-free {
+      color: var(--green) !important;
+      font-weight: 700;
+    }
+
+    .price-pro {
+      font-weight: 600;
+      color: var(--text-primary) !important;
+    }
+
+    /* ========================================
+       PRIVACY
+       ======================================== */
+    .privacy {
+      background: var(--bg-maroon);
+      border-top: 1px solid var(--border-accent);
+      border-bottom: 1px solid var(--border-accent);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .privacy::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(232, 25, 59, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .privacy .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    .privacy-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto var(--space-lg);
+      color: var(--accent);
+    }
+
+    .privacy h2 {
+      font-size: clamp(1.5rem, 3vw + 0.25rem, 2.25rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: var(--space-md);
+      line-height: 1.2;
+    }
+
+    .privacy p {
+      font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ========================================
+       CTA
+       ======================================== */
+    .final-cta {
+      text-align: center;
+      padding: clamp(4rem, 8vw, 7rem) 0;
+    }
+
+    .final-cta h2 {
+      font-size: clamp(1.75rem, 3.5vw + 0.5rem, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: var(--space-md);
+    }
+
+    .final-cta p {
+      color: var(--text-secondary);
+      margin-bottom: var(--space-2xl);
+      font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
+    }
+
+    /* ========================================
+       FOOTER
+       ======================================== */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: var(--space-xl) 0;
+    }
+
+    .footer .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-md);
+      text-align: center;
+    }
+
+    @media (min-width: 768px) {
+      .footer .container {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+      }
+    }
+
+    .footer-brand {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-md);
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-secondary);
+    }
+
+    .footer-social {
+      display: flex;
+      gap: var(--space-md);
+    }
+
+    .footer-social a {
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .footer-social a:hover {
+      color: var(--text-secondary);
+    }
+
+    .footer-social svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ========================================
+       ANIMATIONS
+       ======================================== */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== NAV ==================== -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="container">
+      <a href="#" class="nav-brand" aria-label="ai-Memo home">
+        <img src="images/icon.png" alt="" width="32" height="32" loading="eager">
+        ai-Memo
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features" class="nav-link-text">Features</a></li>
+        <li><a href="#compare" class="nav-link-text">Compare</a></li>
+        <li>
+          <a href="https://apps.apple.com/us/app/ai-memo/id6502860819" class="nav-cta" target="_blank" rel="noopener">
+            Get the App
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ==================== HERO ==================== -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container">
+      <img
+        src="images/icon.png"
+        alt="ai-Memo app icon: red circular waveform button on dark maroon background"
+        width="144"
+        height="144"
+        class="hero-icon"
+        fetchpriority="high"
+      >
+      <h1 id="hero-heading">ai-Memo</h1>
+      <p class="hero-tagline">Your voice, your device, your privacy.</p>
+      <p class="hero-subtitle">
+        Voice to text with dual AI engines. Choose Whisper for accuracy or Apple Speech for speed. All on-device, fully private.
+      </p>
+
+      <div class="hero-badges">
+        <div class="badge-group">
+          <span class="badge-label">Free</span>
+          <a href="https://apps.apple.com/us/app/ai-memo/id6502860819" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo free on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff">
+                <path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/>
+              </g>
+              <g fill="#fff">
+                <path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/>
+              </g>
+            </svg>
+          </a>
+        </div>
+        <div class="badge-group">
+          <span class="badge-label">Pro</span>
+          <a href="https://apps.apple.com/us/app/ai-memo-pro/id6503480155" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo Pro on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff">
+                <path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/>
+              </g>
+              <g fill="#fff">
+                <path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/>
+              </g>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== DUAL ENGINES ==================== -->
+  <section class="engines" id="engines" aria-labelledby="engines-heading">
+    <div class="container">
+      <div class="section-label">Dual AI Engines</div>
+      <h2 class="section-title" id="engines-heading">Two engines. One app. Your choice.</h2>
+      <p class="section-desc">
+        Pick the engine that fits the moment. Switch between them in a single tap.
+      </p>
+
+      <div class="engines-grid">
+        <!-- Whisper -->
+        <div class="engine-card fade-in">
+          <span class="engine-badge engine-badge--accuracy">Accuracy</span>
+          <h3>Whisper AI</h3>
+          <p>
+            OpenAI's whisper.cpp running entirely on your device. Industry-leading accuracy for interviews, meetings, and technical discussions.
+          </p>
+          <div class="engine-usecases">
+            <span class="engine-usecase">Interviews</span>
+            <span class="engine-usecase">Meetings</span>
+            <span class="engine-usecase">Technical content</span>
+          </div>
+          <div class="engine-stat">
+            <span class="engine-stat-value engine-stat-value--accent">~1%</span>
+            <span class="engine-stat-label">Word Error Rate</span>
+          </div>
+        </div>
+
+        <!-- Apple Speech -->
+        <div class="engine-card fade-in">
+          <span class="engine-badge engine-badge--speed">Speed</span>
+          <h3>Apple Speech</h3>
+          <p>
+            Built-in iOS speech recognition with multi-language support. Fast and lightweight for quick notes and everyday use.
+          </p>
+          <div class="engine-usecases">
+            <span class="engine-usecase">Quick notes</span>
+            <span class="engine-usecase">Multi-language</span>
+            <span class="engine-usecase">Everyday use</span>
+          </div>
+          <div class="engine-stat">
+            <span class="engine-stat-value engine-stat-value--blue">~8%</span>
+            <span class="engine-stat-label">Word Error Rate (faster)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FEATURES ==================== -->
+  <section class="features" id="features" aria-labelledby="features-heading">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title" id="features-heading">Built for speed and simplicity</h2>
+
+      <div class="features-grid">
+        <!-- Waveform -->
+        <div class="feature-card fade-in">
+          <svg class="feature-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="4" y="14" width="3" height="12" rx="1.5" fill="currentColor"/>
+            <rect x="10.5" y="8" width="3" height="24" rx="1.5" fill="currentColor"/>
+            <rect x="17" y="12" width="3" height="16" rx="1.5" fill="currentColor"/>
+            <rect x="23.5" y="6" width="3" height="28" rx="1.5" fill="currentColor"/>
+            <rect x="30" y="10" width="3" height="20" rx="1.5" fill="currentColor"/>
+            <rect x="36.5" y="15" width="3" height="10" rx="1.5" fill="currentColor" opacity="0.5"/>
+          </svg>
+          <h3>Real-time Waveform</h3>
+          <p>See your audio input visualized as you speak. Know your microphone is picking up every word.</p>
+        </div>
+
+        <!-- Clipboard -->
+        <div class="feature-card fade-in">
+          <svg class="feature-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="8" y="6" width="24" height="30" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <rect x="14" y="3" width="12" height="6" rx="2" fill="currentColor"/>
+            <line x1="14" y1="17" x2="26" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="23" x2="22" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="29" x2="24" y2="29" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <h3>One-tap Copy</h3>
+          <p>Instantly copy your transcription to the clipboard. Paste it anywhere with zero friction.</p>
+        </div>
+
+        <!-- Metal -->
+        <div class="feature-card fade-in">
+          <svg class="feature-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="5" y="8" width="30" height="22" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <path d="M12 18L18 24L28 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="5" y1="33" x2="35" y2="33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <h3>Metal GPU Acceleration</h3>
+          <p>Whisper models leverage Apple's Metal framework for fast, efficient on-device inference.</p>
+        </div>
+
+        <!-- Offline -->
+        <div class="feature-card fade-in">
+          <svg class="feature-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="20" cy="22" r="12" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <path d="M20 10C14.5 10 10 14 9 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+            <path d="M20 10C25.5 10 30 14 31 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+            <line x1="6" y1="6" x2="34" y2="34" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <h3>Offline-first</h3>
+          <p>No internet connection required for Whisper models. Record and transcribe anywhere, anytime.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SCREENSHOTS ==================== -->
+  <section class="screenshots" id="screenshots" aria-labelledby="screenshots-heading">
+    <div class="container">
+      <div class="screenshots-header">
+        <div class="section-label">See it in action</div>
+        <h2 class="section-title" id="screenshots-heading">Clean, focused, no clutter</h2>
+      </div>
+
+      <div class="screenshots-row">
+        <div class="screenshot-item fade-in">
+          <img
+            src="images/screenshot-recording.png"
+            alt="ai-Memo recording view showing the red record button and waveform visualization on a black background"
+            width="1242"
+            height="2688"
+            loading="lazy"
+          >
+          <p class="screenshot-label">Recording</p>
+        </div>
+        <div class="screenshot-item fade-in">
+          <img
+            src="images/screenshot-settings.png"
+            alt="ai-Memo settings view showing Whisper model selection (Tiny, Base, Small, Medium) and engine toggle"
+            width="1242"
+            height="2688"
+            loading="lazy"
+          >
+          <p class="screenshot-label">Settings</p>
+        </div>
+        <div class="screenshot-item fade-in">
+          <img
+            src="images/screenshot-history.png"
+            alt="ai-Memo recording history view showing transcript list"
+            width="1242"
+            height="2688"
+            loading="lazy"
+          >
+          <p class="screenshot-label">History (Pro)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== COMPARISON ==================== -->
+  <section class="comparison" id="compare" aria-labelledby="compare-heading">
+    <div class="container">
+      <div class="section-label">Plans</div>
+      <h2 class="section-title" id="compare-heading">Free vs Pro</h2>
+
+      <div class="comparison-table-wrap">
+        <table class="comparison-table" role="table">
+          <thead>
+            <tr>
+              <th scope="col">Feature</th>
+              <th scope="col">
+                <div class="col-header">
+                  <img src="images/icon.png" alt="" width="48" height="48">
+                  <span>ai-Memo</span>
+                </div>
+              </th>
+              <th scope="col">
+                <div class="col-header">
+                  <img src="images/icon-pro.png" alt="" width="48" height="48">
+                  <span>ai-Memo Pro</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Whisper AI Engine</td>
+              <td>Tiny model</td>
+              <td class="highlight-cell">4 models (Tiny / Base / Small / Medium)</td>
+            </tr>
+            <tr>
+              <td>Apple Speech Engine</td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Real-time Waveform</td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>One-tap Copy</td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Recording History</td>
+              <td><span class="dash" aria-label="Not included">&mdash;</span></td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Ad-free</td>
+              <td><span class="dash" aria-label="Not included">&mdash;</span></td>
+              <td><span class="check" aria-label="Included">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Price</td>
+              <td class="price-free">Free</td>
+              <td class="price-pro">One-time purchase</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hero-badges" style="margin-top: var(--space-2xl);">
+        <div class="badge-group">
+          <a href="https://apps.apple.com/us/app/ai-memo/id6502860819" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo free on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff">
+                <path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/>
+              </g>
+              <g fill="#fff">
+                <path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/>
+              </g>
+            </svg>
+          </a>
+        </div>
+        <div class="badge-group">
+          <a href="https://apps.apple.com/us/app/ai-memo-pro/id6503480155" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo Pro on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff">
+                <path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/>
+              </g>
+              <g fill="#fff">
+                <path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/>
+              </g>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PRIVACY ==================== -->
+  <section class="privacy" id="privacy" aria-labelledby="privacy-heading">
+    <div class="container">
+      <svg class="privacy-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M28 4L8 14v14c0 12.4 8.53 24.01 20 26.8 11.47-2.79 20-14.4 20-26.8V14L28 4z" stroke="currentColor" stroke-width="3" fill="none" stroke-linejoin="round"/>
+        <path d="M20 28l6 6 10-12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h2 id="privacy-heading">All transcription happens on your device</h2>
+      <p>
+        Your voice data never leaves your iPhone or iPad. No internet connection required for Whisper models. No accounts, no cloud, no tracking.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== FINAL CTA ==================== -->
+  <section class="final-cta" aria-labelledby="cta-heading">
+    <div class="container">
+      <h2 id="cta-heading">Start transcribing today</h2>
+      <p>Private, fast, and accurate voice-to-text on your iPhone and iPad.</p>
+
+      <div class="hero-badges">
+        <div class="badge-group">
+          <span class="badge-label">Free</span>
+          <a href="https://apps.apple.com/us/app/ai-memo/id6502860819" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo free on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff">
+                <path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/>
+              </g>
+              <g fill="#fff">
+                <path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/>
+              </g>
+            </svg>
+          </a>
+        </div>
+        <div class="badge-group">
+          <span class="badge-label">Pro</span>
+          <a href="https://apps.apple.com/us/app/ai-memo-pro/id6503480155" class="app-store-badge" target="_blank" rel="noopener" aria-label="Download ai-Memo Pro on the App Store">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40" role="img" aria-hidden="true">
+              <rect width="120" height="40" rx="6" fill="#000"/>
+              <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="none" stroke="#A6A6A6" stroke-width="1"/>
+              <path d="M24.769 20.3a4.949 4.949 0 012.356-4.151 5.066 5.066 0 00-3.99-2.158c-1.68-.176-3.308 1.005-4.164 1.005-.872 0-2.19-.988-3.608-.958a5.315 5.315 0 00-4.473 2.728c-1.934 3.348-.491 8.269 1.361 10.976.927 1.325 2.01 2.805 3.428 2.753 1.387-.058 1.905-.885 3.58-.885 1.658 0 2.144.885 3.59.852 1.489-.025 2.426-1.332 3.32-2.67a10.962 10.962 0 001.52-3.092 4.782 4.782 0 01-2.92-4.4zM22.037 12.21a4.872 4.872 0 001.115-3.49 4.957 4.957 0 00-3.208 1.66 4.636 4.636 0 00-1.144 3.36 4.1 4.1 0 003.237-1.53z" fill="#fff"/>
+              <g fill="#fff"><path d="M42.302 27.14h-4.738l-1.138 3.36h-2.008l4.486-12.418h2.083l4.486 12.418h-2.039l-1.132-3.36zm-4.243-1.55h3.752l-1.85-5.446h-.05l-1.852 5.447zM55.16 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484H46.63V21.442h1.8v1.506h.033a3.212 3.212 0 012.883-1.6c2.298 0 3.813 1.816 3.813 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.393-1.197 2.393-3.046zM65.125 25.97c0 2.813-1.506 4.62-3.778 4.62a3.07 3.07 0 01-2.848-1.583h-.043v4.484h-1.859V21.442h1.799v1.506h.034a3.212 3.212 0 012.883-1.6c2.298 0 3.812 1.816 3.812 4.622zm-1.91 0c0-1.833-.947-3.038-2.393-3.038-1.42 0-2.375 1.23-2.375 3.038 0 1.824.955 3.046 2.375 3.046 1.446 0 2.392-1.197 2.392-3.046zM71.71 27.036c.138 1.232 1.334 2.04 2.97 2.04 1.566 0 2.693-.808 2.693-1.919 0-.964-.68-1.54-2.29-1.936l-1.609-.388c-2.28-.55-3.339-1.617-3.339-3.348 0-2.142 1.867-3.614 4.519-3.614 2.624 0 4.423 1.472 4.483 3.614h-1.876c-.112-1.239-1.137-1.987-2.634-1.987s-2.521.757-2.521 1.858c0 .878.654 1.395 2.255 1.79l1.368.336c2.548.604 3.606 1.626 3.606 3.443 0 2.323-1.85 3.778-4.794 3.778-2.754 0-4.613-1.42-4.734-3.667h1.903zM83.346 19.3v2.142h1.722v1.472h-1.722v5.007c0 .778.347 1.142 1.107 1.142.2-.003.4-.018.598-.043v1.462c-.334.063-.673.09-1.012.085-1.842 0-2.563-.691-2.563-2.454v-5.2h-1.316v-1.47h1.316V19.3h1.87zM85.978 25.97c0-2.849 1.678-4.639 4.294-4.639 2.625 0 4.295 1.79 4.295 4.639 0 2.856-1.661 4.638-4.295 4.638-2.633 0-4.294-1.782-4.294-4.638zm6.695 0c0-1.954-.895-3.108-2.401-3.108s-2.4 1.162-2.4 3.108c0 1.962.894 3.106 2.4 3.106s2.4-1.144 2.4-3.106zM96.186 21.442h1.773v1.54h.043a2.16 2.16 0 012.177-1.635c.214 0 .428.023.637.068v1.738a2.594 2.594 0 00-.835-.112 1.873 1.873 0 00-1.937 2.083v5.377h-1.858v-9.06zM109.384 27.837c-.25 1.644-1.85 2.771-3.898 2.771-2.634 0-4.269-1.764-4.269-4.595 0-2.84 1.644-4.682 4.19-4.682 2.505 0 4.08 1.72 4.08 4.466v.637h-6.394v.112a2.358 2.358 0 002.436 2.564 2.048 2.048 0 002.09-1.273h1.765zm-6.282-2.702h4.526a2.177 2.177 0 00-2.22-2.298 2.292 2.292 0 00-2.306 2.298z"/></g>
+              <g fill="#fff"><path d="M37.826 8.731a2.64 2.64 0 012.808 2.965c0 1.906-1.03 3.002-2.808 3.002h-2.155V8.731h2.155zm-1.228 5.123h1.125a1.876 1.876 0 001.967-2.146 1.881 1.881 0 00-1.967-2.134h-1.125v4.28zM41.68 12.444a2.133 2.133 0 114.248 0 2.134 2.134 0 11-4.247 0zm3.334 0c0-.976-.439-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM51.573 14.698h-.922l-.93-3.317h-.07l-.927 3.317h-.913l-1.242-4.503h.902l.806 3.436h.067l.926-3.436h.852l.926 3.436h.07l.803-3.436h.889l-1.237 4.503zM53.854 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM59.094 8.437h.889v6.261h-.89V8.437zM61.218 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM66.4 13.424c0-.81.604-1.278 1.676-1.344l1.22-.07v-.389c0-.476-.315-.744-.922-.744-.497 0-.84.182-.94.5h-.86c.09-.773.818-1.27 1.84-1.27 1.128 0 1.765.563 1.765 1.514v3.077h-.855v-.633h-.07a1.515 1.515 0 01-1.353.707 1.36 1.36 0 01-1.501-1.348zm2.895-.384v-.377l-1.1.07c-.62.042-.9.253-.9.649 0 .402.351.636.834.636a1.062 1.062 0 001.166-.978zM71.348 12.444c0-1.423.731-2.324 1.87-2.324a1.484 1.484 0 011.38.79h.067V8.437h.888v6.261h-.851v-.71h-.07a1.563 1.563 0 01-1.415.785c-1.145 0-1.869-.901-1.869-2.329zm.918 0c0 .955.45 1.53 1.203 1.53.749 0 1.212-.583 1.212-1.526 0-.938-.468-1.53-1.212-1.53-.748 0-1.203.579-1.203 1.526zM79.23 12.444a2.133 2.133 0 114.247 0 2.134 2.134 0 11-4.247 0zm3.333 0c0-.976-.438-1.547-1.208-1.547-.773 0-1.207.571-1.207 1.547 0 .984.434 1.55 1.207 1.55.77 0 1.208-.57 1.208-1.55zM84.67 10.195h.855v.715h.066a1.348 1.348 0 011.344-.802 1.465 1.465 0 011.559 1.675v2.915h-.89v-2.692c0-.724-.314-1.084-.972-1.084a1.033 1.033 0 00-1.075 1.141v2.635h-.889v-4.503zM93.515 9.074v1.141h.976v.749h-.976v2.315c0 .472.194.679.637.679.113 0 .226-.007.338-.02v.74a2.95 2.95 0 01-.484.046c-.988 0-1.381-.348-1.381-1.216v-2.544h-.714v-.749h.714V9.074h.89zM95.705 8.437h.88v2.481h.07a1.386 1.386 0 011.374-.806 1.483 1.483 0 011.55 1.679v2.907h-.889v-2.688c0-.72-.335-1.084-.963-1.084a1.052 1.052 0 00-1.134 1.142v2.63h-.888V8.437zM104.761 13.482a1.828 1.828 0 01-1.95 1.303 2.045 2.045 0 01-2.081-2.325 2.077 2.077 0 012.076-2.352c1.253 0 2.009.856 2.009 2.27v.31h-3.18v.05a1.19 1.19 0 001.2 1.29 1.08 1.08 0 001.07-.546h.856zm-3.126-1.45h2.275a1.086 1.086 0 00-1.109-1.167 1.152 1.152 0 00-1.166 1.167z"/></g>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <p class="footer-brand">ai-Memo &copy; 2024&ndash;2026</p>
+      <ul class="footer-links">
+        <li><a href="https://apps.apple.com/us/app/ai-memo/id6502860819" target="_blank" rel="noopener">App Store (Free)</a></li>
+        <li><a href="https://apps.apple.com/us/app/ai-memo-pro/id6503480155" target="_blank" rel="noopener">App Store (Pro)</a></li>
+        <li><a href="https://github.com/kkai/aimemo" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+      <div class="footer-social">
+        <a href="https://github.com/kkai/aimemo" target="_blank" rel="noopener" aria-label="ai-Memo on GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    // Scroll-triggered fade-in animations
+    (function() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      document.querySelectorAll('.fade-in').forEach(function(el) {
+        observer.observe(el);
+      });
+    })();
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        var target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
