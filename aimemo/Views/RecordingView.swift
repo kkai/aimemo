@@ -7,11 +7,7 @@
 
 import SwiftUI
 import AVFoundation
-#if os(iOS)
-#if canImport(GoogleMobileAds)
-import GoogleMobileAds
-#endif
-#elseif os(macOS)
+#if os(macOS)
 import AppKit
 #endif
 import UniformTypeIdentifiers
@@ -24,28 +20,13 @@ struct RecordingView: View {
       Color.black.ignoresSafeArea()
 
       VStack(alignment: .center)  {
-        #if canImport(GoogleMobileAds) && !PRO_VERSION
-        HStack {
-          Spacer()
-          GADBannerViewController()
-            .frame(width: AdSizeBanner.size.width, height: AdSizeBanner.size.height)
-          Spacer()
-        }
-        #endif
         Text("aiMemo")
           .font(.title)
           .foregroundStyle(.white).padding()
         Text("Start recording speech to convert it to text. Longer recordings might take a while to convert.")
           .foregroundStyle(.white).padding()
-        #if canImport(GoogleMobileAds) && !PRO_VERSION
-        Text("[Get ai-Memo Pro with no ads](https://apps.apple.com/app/ai-memo-pro/id6503480155)").foregroundStyle(.blue).padding()
-        #endif
-
         #if !PRO_VERSION
-        Text("Upgrade to Pro for history & model selection")
-          .font(.caption)
-          .foregroundStyle(.gray)
-          .padding(.bottom, 8)
+        Text("[Get ai-Memo Pro](https://apps.apple.com/app/ai-memo-pro/id6503480155)").foregroundStyle(.blue).padding()
         #endif
 
         // Status label

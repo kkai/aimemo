@@ -16,4 +16,4 @@ KEY FEATURES
 - Dark-themed minimal interface
 - Metal GPU acceleration for fast processing
 
-Upgrade to ai-Memo Pro for recording history, multiple Whisper model sizes, and an ad-free experience.
+Upgrade to ai-Memo Pro for recording history and multiple Whisper model sizes.
