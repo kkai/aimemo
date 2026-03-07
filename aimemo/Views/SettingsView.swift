@@ -16,7 +16,6 @@ struct SettingsView: View {
   @State private var isLoadingModel = false
   @State private var showingAlert = false
   @State private var alertMessage = ""
-  @State private var showingEngineComparison = false
 
   var body: some View {
     NavigationStack {
@@ -92,12 +91,6 @@ struct SettingsView: View {
             .buttonStyle(.plain)
           }
 
-          // Comparison button
-          Button {
-            showingEngineComparison = true
-          } label: {
-            Label("Compare Engines", systemImage: "info.circle")
-          }
         } header: {
           Text("Transcription Engine")
         } footer: {
@@ -109,6 +102,25 @@ struct SettingsView: View {
               .font(.caption)
           }
         }
+
+        #if !PRO_VERSION
+        Section {
+          Link(destination: URL(string: "https://apps.apple.com/app/ai-memo-pro/id6503480155")!) {
+            HStack {
+              Label("Buy ai-Memo Pro", systemImage: "star.fill")
+                .foregroundColor(.blue)
+              Spacer()
+              Image(systemName: "arrow.up.right.square")
+                .foregroundColor(.secondary)
+            }
+          }
+        } header: {
+          Text("Upgrade")
+        } footer: {
+          Text("Get recording history and model selection with ai-Memo Pro.")
+            .font(.caption)
+        }
+        #endif
 
         // Loading indicator
         if isLoadingModel {
@@ -140,9 +152,6 @@ struct SettingsView: View {
         Button("OK", role: .cancel) {}
       } message: {
         Text(alertMessage)
-      }
-      .sheet(isPresented: $showingEngineComparison) {
-        EngineComparisonView()
       }
     }
   }
@@ -180,120 +189,6 @@ struct SettingsView: View {
         }
       }
     }
-  }
-}
-
-// MARK: - Engine Comparison View
-
-struct EngineComparisonView: View {
-  @Environment(\.dismiss) private var dismiss
-
-  var body: some View {
-    NavigationStack {
-      List {
-        Section("Performance") {
-          ComparisonRow(
-            metric: "Speed",
-            whisperValue: "Good",
-            appleValue: "Excellent (2.2x faster)"
-          )
-          ComparisonRow(
-            metric: "Accuracy",
-            whisperValue: "Excellent (1% WER)",
-            appleValue: "Good (8% WER)"
-          )
-          ComparisonRow(
-            metric: "Battery Usage",
-            whisperValue: "Higher",
-            appleValue: "Lower (optimized)"
-          )
-        }
-
-        Section("Storage & Requirements") {
-          ComparisonRow(
-            metric: "Storage",
-            whisperValue: "75 MB - 1.5 GB",
-            appleValue: "0 MB (system)"
-          )
-          ComparisonRow(
-            metric: "Languages",
-            whisperValue: "English only",
-            appleValue: "10-60+ languages"
-          )
-          ComparisonRow(
-            metric: "Permission",
-            whisperValue: "Microphone only",
-            appleValue: "Microphone + Speech"
-          )
-        }
-
-        Section("Best For") {
-          VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Whisper Models")
-                .font(.headline)
-              Text("Important recordings, interviews, technical content where accuracy is critical")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Apple Speech")
-                .font(.headline)
-              Text("Quick notes, meetings, real-time transcription where speed matters")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        }
-      }
-      .navigationTitle("Compare Engines")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
-          Button("Done") {
-            dismiss()
-          }
-        }
-      }
-    }
-  }
-}
-
-struct ComparisonRow: View {
-  let metric: String
-  let whisperValue: String
-  let appleValue: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(metric)
-        .font(.subheadline)
-        .foregroundColor(.secondary)
-
-      HStack {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Whisper")
-            .font(.caption)
-            .foregroundColor(.secondary)
-          Text(whisperValue)
-            .font(.body)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Apple")
-            .font(.caption)
-            .foregroundColor(.secondary)
-          Text(appleValue)
-            .font(.body)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-      }
-    }
-    .padding(.vertical, 4)
   }
 }
 

@@ -34,9 +34,5 @@
 	<string>This app requires microphone access to record speech for voice-to-text transcription.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app uses speech recognition to transcribe your voice recordings to text when using Apple Speech engine.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>$(GAD_APP_ID)</string>
-	<key>GADBannerAdUnitID</key>
-	<string>$(GAD_BANNER_UNIT_ID)</string>
 </dict>
 </plist>

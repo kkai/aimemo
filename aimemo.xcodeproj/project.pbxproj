@@ -8,12 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		2A27E2162E7521AA002CE292 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
-		2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, xros, ); productRef = 2A27E2182E75227E002CE292 /* GoogleMobileAds */; };
 		2AB3CE0B2E7473A400D00BF9 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		2A27E2402E7530A0002CE292 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		2AB3CD6A2E7473A400D00BF9 /* aimemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = aimemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "aimemo-pro.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -56,7 +54,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2A27E2192E75227E002CE292 /* GoogleMobileAds in Frameworks */,
 				2A27E2162E7521AA002CE292 /* whisper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -75,7 +72,6 @@
 		2AB3CD612E7473A400D00BF9 = {
 			isa = PBXGroup;
 			children = (
-				2A27E2402E7530A0002CE292 /* Secrets.xcconfig */,
 				2AB3CD6C2E7473A400D00BF9 /* aimemo */,
 				2AB3CD6B2E7473A400D00BF9 /* Products */,
 			);
@@ -111,7 +107,6 @@
 			name = aimemo;
 			packageProductDependencies = (
 				2A27E2152E7521AA002CE292 /* whisper */,
-				2A27E2182E75227E002CE292 /* GoogleMobileAds */,
 			);
 			productName = aimemo;
 			productReference = 2AB3CD6A2E7473A400D00BF9 /* aimemo.app */;
@@ -166,7 +161,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				2A27E2142E7521AA002CE292 /* XCLocalSwiftPackageReference "whisper.cpp" */,
-				2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2AB3CD6B2E7473A400D00BF9 /* Products */;
@@ -332,7 +326,6 @@
 		};
 		2AB3CD772E7473A600D00BF9 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2A27E2402E7530A0002CE292 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -358,7 +351,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -373,7 +366,6 @@
 		};
 		2AB3CD782E7473A600D00BF9 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2A27E2402E7530A0002CE292 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -399,7 +391,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -439,7 +431,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -480,7 +472,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -533,26 +525,10 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.11.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		2A27E2152E7521AA002CE292 /* whisper */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = whisper;
-		};
-		2A27E2182E75227E002CE292 /* GoogleMobileAds */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2A27E2172E75227E002CE292 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
-			productName = GoogleMobileAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
