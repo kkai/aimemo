@@ -94,3 +94,6 @@ iOSInjectionProject/
 
 # Secrets
 Secrets.xcconfig
+
+# Claude Code local tooling
+.claude/
