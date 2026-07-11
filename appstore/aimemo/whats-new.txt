@@ -1,2 +1,1 @@
-Ads removed — enjoy a clean, distraction-free experience.
-Streamlined Settings with direct link to ai-Memo Pro.
+Reliability release: fixed a potential audio-processing issue and hardened the transcription engine with an automated test suite. Recording and transcription are smoother than ever.
