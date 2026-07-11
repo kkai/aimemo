@@ -14,6 +14,8 @@ struct RecordingDetailView: View {
   @State private var viewModel = RecordingsViewModel()
   @State private var showingShareSheet = false
   @State private var copiedToClipboard = false
+  @State private var summaryGenerator = SummaryGenerator()
+  @State private var showingSummaryError = false
 
   var body: some View {
     ScrollView {
@@ -44,6 +46,55 @@ struct RecordingDetailView: View {
           Text(recording.transcriptText)
             .font(.body)
             .textSelection(.enabled)
+        }
+
+        // AI summary section (on-device Foundation Models, iOS 26+).
+        // Renders nothing on devices without Apple Intelligence.
+        if recording.summary != nil || summaryGenerator.isAvailable {
+          Divider()
+
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("AI Summary")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+              Spacer()
+
+              if recording.summary != nil && summaryGenerator.isAvailable {
+                Button {
+                  generateSummary()
+                } label: {
+                  Label("Regenerate", systemImage: "arrow.clockwise")
+                    .font(.caption)
+                }
+                .disabled(summaryGenerator.isGenerating)
+              }
+            }
+
+            if summaryGenerator.isGenerating {
+              HStack(spacing: 8) {
+                ProgressView()
+                Text("Summarizing…")
+                  .font(.subheadline)
+                  .foregroundColor(.secondary)
+              }
+              .padding(.vertical, 4)
+            } else if let summary = recording.summary {
+              Text(summary)
+                .font(.body)
+                .textSelection(.enabled)
+            } else {
+              Button {
+                generateSummary()
+              } label: {
+                Label("Generate Summary", systemImage: "sparkles")
+                  .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.bordered)
+              .tint(.blue)
+            }
+          }
         }
 
         Spacer(minLength: 20)
@@ -99,6 +150,23 @@ struct RecordingDetailView: View {
     }
     .sheet(isPresented: $showingShareSheet) {
       ShareSheet(items: viewModel.shareRecording(recording))
+    }
+    .alert("Summary Failed", isPresented: $showingSummaryError) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(summaryGenerator.error ?? "Could not generate a summary.")
+    }
+  }
+
+  private func generateSummary() {
+    Task {
+      await summaryGenerator.generateSummary(for: recording.transcriptText)
+      if let summary = summaryGenerator.summaryText {
+        recording.summary = summary
+        try? modelContext.save()
+      } else if summaryGenerator.error != nil {
+        showingSummaryError = true
+      }
     }
   }
 

@@ -127,4 +127,20 @@ struct RecordingTests {
     #expect(fetched.first?.title == "Renamed")
     #expect(fetched.first?.displayTitle == "Renamed")
   }
+
+  @Test func initDefaultsSummaryNil() throws {
+    #expect(Recording(timestamp: .now, duration: 1, transcriptText: "t").summary == nil)
+  }
+
+  @Test func summaryPersists() throws {
+    let container = try makeContainer()
+    let context = container.mainContext
+    let recording = Recording(timestamp: .now, duration: 5, transcriptText: "text")
+    context.insert(recording)
+    try context.save()
+    recording.summary = "- Key point one\n- Key point two"
+    try context.save()
+    let fetched = try context.fetch(FetchDescriptor<Recording>())
+    #expect(fetched.first?.summary == "- Key point one\n- Key point two")
+  }
 }
