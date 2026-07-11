@@ -11,9 +11,20 @@
 		2AB3CE0B2E7473A400D00BF9 /* whisper in Frameworks */ = {isa = PBXBuildFile; productRef = 2A27E2152E7521AA002CE292 /* whisper */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		AA00000A2EAA00010000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AB3CD622E7473A400D00BF9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2AB3CD692E7473A400D00BF9;
+			remoteInfo = aimemo;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2AB3CD6A2E7473A400D00BF9 /* aimemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = aimemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "aimemo-pro.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000022EAA000100000002 /* aimemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = aimemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -47,6 +58,11 @@
 			path = aimemo;
 			sourceTree = "<group>";
 		};
+		AA0000062EAA000100000006 /* aimemoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = aimemoTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +82,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000042EAA000100000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -73,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				2AB3CD6C2E7473A400D00BF9 /* aimemo */,
+				AA0000062EAA000100000006 /* aimemoTests */,
 				2AB3CD6B2E7473A400D00BF9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -82,6 +106,7 @@
 			children = (
 				2AB3CD6A2E7473A400D00BF9 /* aimemo.app */,
 				2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */,
+				AA0000022EAA000100000002 /* aimemoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -135,6 +160,29 @@
 			productReference = 2AB3CE0A2E7473A400D00BF9 /* aimemo-pro.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA0000012EAA000100000001 /* aimemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000092EAA000100000009 /* Build configuration list for PBXNativeTarget "aimemoTests" */;
+			buildPhases = (
+				AA0000032EAA000100000003 /* Sources */,
+				AA0000042EAA000100000004 /* Frameworks */,
+				AA0000052EAA000100000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA00000B2EAA00010000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000062EAA000100000006 /* aimemoTests */,
+			);
+			name = aimemoTests;
+			packageProductDependencies = (
+			);
+			productName = aimemoTests;
+			productReference = AA0000022EAA000100000002 /* aimemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -147,6 +195,10 @@
 				TargetAttributes = {
 					2AB3CD692E7473A400D00BF9 = {
 						CreatedOnToolsVersion = 16.4;
+					};
+					AA0000012EAA000100000001 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 2AB3CD692E7473A400D00BF9;
 					};
 				};
 			};
@@ -169,6 +221,7 @@
 			targets = (
 				2AB3CD692E7473A400D00BF9 /* aimemo */,
 				2AB3CE092E7473A400D00BF9 /* aimemo-pro */,
+				AA0000012EAA000100000001 /* aimemoTests */,
 			);
 		};
 /* End PBXProject section */
@@ -182,6 +235,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		2AB3CE052E7473A400D00BF9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000052EAA000100000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -205,7 +265,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000032EAA000100000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA00000B2EAA00010000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2AB3CD692E7473A400D00BF9 /* aimemo */;
+			targetProxy = AA00000A2EAA00010000000A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2AB3CD742E7473A600D00BF9 /* Debug */ = {
@@ -486,6 +561,48 @@
 			};
 			name = Release;
 		};
+		AA0000072EAA000100000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H42EZRCCP;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/aimemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/aimemo";
+			};
+			name = Debug;
+		};
+		AA0000082EAA000100000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H42EZRCCP;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/aimemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/aimemo";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -512,6 +629,15 @@
 			buildConfigurations = (
 				2AB3CE0D2E7473A600D00BF9 /* Debug */,
 				2AB3CE0E2E7473A600D00BF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000092EAA000100000009 /* Build configuration list for PBXNativeTarget "aimemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000072EAA000100000007 /* Debug */,
+				AA0000082EAA000100000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

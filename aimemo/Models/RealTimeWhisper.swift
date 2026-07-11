@@ -273,7 +273,7 @@ class RealTimeWhisper {
         return floats
     }
 
-    private func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
+    func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
         guard let channelData = buffer.floatChannelData else { return 0.0 }
 
         let channelDataValue = channelData.pointee
