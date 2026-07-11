@@ -27,10 +27,8 @@ class PauseDetector {
         
         let sampleCount = Int(buffer.frameLength)
         
-        var energy: Float = 0
-        vDSP_vsq(samples, 1, &energy, 1, vDSP_Length(sampleCount))
         var meanEnergy: Float = 0
-        vDSP_meanv(&energy, 1, &meanEnergy, vDSP_Length(sampleCount))
+        vDSP_measqv(samples, 1, &meanEnergy, vDSP_Length(sampleCount))
         
         return meanEnergy < energyThreshold
     }
