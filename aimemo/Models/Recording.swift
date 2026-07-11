@@ -21,17 +21,22 @@ final class Recording {
   // User-editable properties
   var title: String?
 
+  // On-device AI summary (Foundation Models, iOS 26+)
+  var summary: String?
+
   init(
     timestamp: Date,
     duration: TimeInterval,
     transcriptText: String,
-    title: String? = nil
+    title: String? = nil,
+    summary: String? = nil
   ) {
     self.id = UUID()
     self.timestamp = timestamp
     self.duration = duration
     self.transcriptText = transcriptText
     self.title = title
+    self.summary = summary
   }
 
   // MARK: - Computed Properties

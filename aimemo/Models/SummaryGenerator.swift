@@ -76,4 +76,35 @@ class SummaryGenerator {
     summaryText = nil
     error = nil
   }
+
+  /// Short (at most six words) title for a transcript.
+  /// Returns nil when the model is unavailable, the transcript is empty,
+  /// or generation fails — callers treat nil as "keep the existing title".
+  func generateTitle(for transcript: String) async -> String? {
+    let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedTranscript.isEmpty else { return nil }
+
+    #if canImport(FoundationModels)
+    if #available(iOS 26.0, *) {
+      guard SystemLanguageModel.default.isAvailable else { return nil }
+      do {
+        let session = LanguageModelSession {
+          """
+          You create titles for voice memo transcripts.
+          Reply with only the title: at most six words, no quotes, no trailing punctuation.
+          """
+        }
+        let response = try await session.respond(
+          to: "Create a title for this voice memo transcript:\n\n\(trimmedTranscript)")
+        let title = response.content
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+          .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+        return title.isEmpty ? nil : title
+      } catch {
+        return nil
+      }
+    }
+    #endif
+    return nil
+  }
 }

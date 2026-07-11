@@ -333,8 +333,23 @@ class RealTimeWhisper {
         do {
             try modelContext.save()
             print("Recording auto-saved: \(recording.displayTitle)")
+            autoTitle(recording, in: modelContext)
         } catch {
             print("Error saving recording: \(error.localizedDescription)")
+        }
+    }
+
+    /// Fills an empty title with an on-device AI suggestion (iOS 26+).
+    /// Fire-and-forget: never blocks saving, never overwrites a user title.
+    private func autoTitle(_ recording: Recording, in modelContext: ModelContext) {
+        let generator = SummaryGenerator()
+        guard generator.isAvailable, recording.title == nil else { return }
+
+        Task { @MainActor in
+            guard let title = await generator.generateTitle(for: recording.transcriptText),
+                  recording.title == nil else { return }
+            recording.title = title
+            try? modelContext.save()
         }
     }
     
