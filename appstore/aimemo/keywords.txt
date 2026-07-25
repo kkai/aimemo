@@ -1,1 +1,1 @@
-voice,memo,transcription,whisper,speech,text,recording,AI,notes,offline,private,multilingual
+text to speech, artificial intelligence, memo, business meetings, multilingual
