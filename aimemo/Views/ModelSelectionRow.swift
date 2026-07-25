@@ -15,7 +15,7 @@ struct ModelSelectionRow: View {
     HStack(spacing: 12) {
       // Selection indicator
       Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-        .foregroundColor(isSelected ? .blue : .gray)
+        .foregroundStyle(isSelected ? Theme.accent : Theme.textSecondary)
         .font(.title3)
 
       VStack(alignment: .leading, spacing: 4) {
@@ -23,31 +23,32 @@ struct ModelSelectionRow: View {
         HStack {
           Text(model.displayName)
             .font(.headline)
+            .foregroundStyle(Theme.textPrimary)
 
           Text(model.quality)
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(qualityColor.opacity(0.2))
-            .foregroundColor(qualityColor)
+            .foregroundStyle(qualityColor)
             .cornerRadius(4)
         }
 
         // Description
         Text(model.description)
           .font(.subheadline)
-          .foregroundColor(.secondary)
+          .foregroundStyle(Theme.textSecondary)
           .lineLimit(2)
 
         // Size and memory requirements
         HStack(spacing: 12) {
           Label(model.fileSize, systemImage: "externaldrive")
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(Theme.textSecondary)
 
           Label(model.memoryRequirement, systemImage: "memorychip")
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(Theme.textSecondary)
         }
       }
 

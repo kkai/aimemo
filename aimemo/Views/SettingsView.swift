@@ -84,7 +84,7 @@ struct SettingsView: View {
 
                 if selectedEngine == engine {
                   Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(Theme.accent)
                 }
               }
             }
@@ -108,7 +108,7 @@ struct SettingsView: View {
           Link(destination: URL(string: "https://apps.apple.com/app/ai-memo-pro/id6503480155")!) {
             HStack {
               Label("Buy ai-Memo Pro", systemImage: "star.fill")
-                .foregroundColor(.blue)
+                .foregroundColor(Theme.accent)
               Spacer()
               Image(systemName: "arrow.up.right.square")
                 .foregroundColor(.secondary)
@@ -139,6 +139,8 @@ struct SettingsView: View {
           }
         }
       }
+      .scrollContentBackground(.hidden)
+      .background(Theme.background)
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
