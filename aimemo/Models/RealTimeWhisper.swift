@@ -69,14 +69,14 @@ class RealTimeWhisper {
 
     /// Find the URL for a given model in the bundle
     private func findModelURL(for model: WhisperModel) -> URL? {
-        let fileName = model.fileName
+        let resourceName = model.resourceName
 
         // Try multiple locations to find the model
-        if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin", subdirectory: "models") {
+        if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin", subdirectory: "models") {
             return url
-        } else if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin", subdirectory: "Resources/models") {
+        } else if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin", subdirectory: "Resources/models") {
             return url
-        } else if let url = Bundle.main.url(forResource: model.rawValue, withExtension: "bin") {
+        } else if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin") {
             return url
         }
 

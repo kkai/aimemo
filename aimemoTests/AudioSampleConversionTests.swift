@@ -38,7 +38,7 @@ struct AudioSampleConversionTests {
   // MARK: RealTimeWhisper.decodePCMBuffer
 
   @Test func modelLoadsFromHostAppBundle() {
-    // Smoke test for findModelURL: init found and loaded the tiny model.
+    // Smoke test for findModelURL: init found and loaded the default model.
     #expect(Self.whisper.canTranscribe)
   }
 
