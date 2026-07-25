@@ -16,6 +16,7 @@ struct RecordingRow: View {
       HStack {
         Text(recording.displayTitle)
           .font(.headline)
+          .foregroundStyle(Theme.textPrimary)
           .lineLimit(1)
 
         Spacer()
@@ -23,27 +24,29 @@ struct RecordingRow: View {
         // Duration badge
         Text(recording.formattedDuration)
           .font(.caption)
-          .foregroundColor(.secondary)
+          .foregroundStyle(Theme.textSecondary)
           .padding(.horizontal, 8)
           .padding(.vertical, 4)
-          .background(Color.secondary.opacity(0.2))
-          .cornerRadius(8)
+          .background(
+            Capsule().fill(Theme.accent.opacity(0.15))
+          )
       }
 
       // Transcript preview
       Text(recording.transcriptPreview)
         .font(.subheadline)
-        .foregroundColor(.secondary)
+        .foregroundStyle(Theme.textSecondary)
         .lineLimit(2)
 
       // Timestamp (if title exists)
       if recording.title != nil && !recording.title!.isEmpty {
         Text(recording.formattedDate)
           .font(.caption2)
-          .foregroundColor(.secondary)
+          .foregroundStyle(Theme.textSecondary)
       }
     }
-    .padding(.vertical, 4)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .cardSurface(padding: 14)
   }
 }
 

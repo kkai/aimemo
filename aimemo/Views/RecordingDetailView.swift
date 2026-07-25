@@ -19,12 +19,13 @@ struct RecordingDetailView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 20) {
-        // Header section
-        VStack(alignment: .leading, spacing: 8) {
+      VStack(alignment: .leading, spacing: 16) {
+        // Header card
+        VStack(alignment: .leading, spacing: 10) {
           Text(recording.displayTitle)
             .font(.title2)
             .bold()
+            .foregroundStyle(Theme.textPrimary)
 
           HStack {
             Label(recording.formattedDate, systemImage: "calendar")
@@ -32,32 +33,33 @@ struct RecordingDetailView: View {
             Label(recording.formattedDuration, systemImage: "clock")
           }
           .font(.subheadline)
-          .foregroundColor(.secondary)
+          .foregroundStyle(Theme.textSecondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
 
-        Divider()
-
-        // Transcript section
+        // Transcript card
         VStack(alignment: .leading, spacing: 8) {
           Text("Transcript")
             .font(.headline)
-            .foregroundColor(.secondary)
+            .foregroundStyle(Theme.textSecondary)
 
           Text(recording.transcriptText)
             .font(.body)
+            .foregroundStyle(Theme.textPrimary)
             .textSelection(.enabled)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
 
-        // AI summary section (on-device Foundation Models, iOS 26+).
+        // AI summary card (on-device Foundation Models, iOS 26+).
         // Renders nothing on devices without Apple Intelligence.
         if recording.summary != nil || summaryGenerator.isAvailable {
-          Divider()
-
           VStack(alignment: .leading, spacing: 8) {
             HStack {
               Text("AI Summary")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Theme.textSecondary)
 
               Spacer()
 
@@ -68,6 +70,7 @@ struct RecordingDetailView: View {
                   Label("Regenerate", systemImage: "arrow.clockwise")
                     .font(.caption)
                 }
+                .tint(Theme.accent)
                 .disabled(summaryGenerator.isGenerating)
               }
             }
@@ -77,60 +80,41 @@ struct RecordingDetailView: View {
                 ProgressView()
                 Text("Summarizing…")
                   .font(.subheadline)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(Theme.textSecondary)
               }
               .padding(.vertical, 4)
             } else if let summary = recording.summary {
               Text(summary)
                 .font(.body)
+                .foregroundStyle(Theme.textPrimary)
                 .textSelection(.enabled)
             } else {
-              Button {
+              ActionButton(title: "Generate Summary", systemName: "sparkles", tint: Theme.accent) {
                 generateSummary()
-              } label: {
-                Label("Generate Summary", systemImage: "sparkles")
-                  .frame(maxWidth: .infinity)
               }
-              .buttonStyle(.bordered)
-              .tint(.blue)
             }
           }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .cardSurface()
         }
-
-        Spacer(minLength: 20)
 
         // Action buttons
         VStack(spacing: 12) {
-          Button {
+          ActionButton(title: "Copy to Clipboard", systemName: "doc.on.doc", tint: Theme.accent) {
             copyToClipboard()
-          } label: {
-            Label("Copy to Clipboard", systemImage: "doc.on.doc")
-              .frame(maxWidth: .infinity)
           }
-          .buttonStyle(.bordered)
-          .tint(.blue)
-
-          Button {
+          ActionButton(title: "Share", systemName: "square.and.arrow.up", tint: Theme.accent) {
             shareRecording()
-          } label: {
-            Label("Share", systemImage: "square.and.arrow.up")
-              .frame(maxWidth: .infinity)
           }
-          .buttonStyle(.bordered)
-          .tint(.blue)
-
-          Button {
+          ActionButton(title: "Edit Title", systemName: "pencil", tint: Theme.textSecondary) {
             viewModel.editRecording(recording)
-          } label: {
-            Label("Edit Title", systemImage: "pencil")
-              .frame(maxWidth: .infinity)
           }
-          .buttonStyle(.bordered)
-          .tint(.gray)
         }
+        .padding(.top, 4)
       }
       .padding()
     }
+    .background(Theme.background)
     .navigationBarTitleDisplayMode(.inline)
     .overlay(alignment: .top) {
       if copiedToClipboard {
@@ -138,9 +122,9 @@ struct RecordingDetailView: View {
           .font(.caption)
           .padding(.horizontal, 16)
           .padding(.vertical, 8)
-          .background(Color.secondary.opacity(0.8))
-          .foregroundColor(.white)
-          .cornerRadius(20)
+          .background(Capsule().fill(Theme.surface))
+          .overlay(Capsule().stroke(Theme.surfaceBorder, lineWidth: 1))
+          .foregroundStyle(Theme.textPrimary)
           .padding(.top, 8)
           .transition(.move(edge: .top).combined(with: .opacity))
       }

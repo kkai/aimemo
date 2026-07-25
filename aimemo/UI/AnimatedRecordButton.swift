@@ -12,8 +12,8 @@ struct AnimatedRecordButton: View {
   var onStart: () -> Void
   var onStop: () -> Void
 
-  private let outerSize: CGFloat = 90
-  private let strokeWidth: CGFloat = 4
+  private let outerSize: CGFloat = 96
+  private let ringWidth: CGFloat = 6
 
   var body: some View {
     Button(action: {
@@ -26,23 +26,29 @@ struct AnimatedRecordButton: View {
       }
     }) {
       ZStack {
-        // Outer white circle
+        // Dark outer ring
         Circle()
-          .stroke(Color.white, lineWidth: strokeWidth)
+          .stroke(Color(hex: 0x1C1C1E), lineWidth: ringWidth)
           .frame(width: outerSize, height: outerSize)
 
-        // Inner morphing shape
+        // Red disc, with a subtle white inner hairline
+        Circle()
+          .fill(Color(hex: 0xFF3B30))
+          .frame(width: outerSize - ringWidth * 2, height: outerSize - ringWidth * 2)
+          .overlay(
+            Circle().stroke(Color.white.opacity(0.9), lineWidth: 2)
+          )
+
+        // Glyph: mic when idle, stop square while recording
         if isRecording {
-          // Recording state: rounded rectangle
-          RoundedRectangle(cornerRadius: 8)
-            .fill(Color.red)
-            .frame(width: outerSize * 0.5, height: outerSize * 0.5)
+          RoundedRectangle(cornerRadius: 6)
+            .fill(Color.white)
+            .frame(width: outerSize * 0.28, height: outerSize * 0.28)
             .transition(.scale.combined(with: .opacity))
         } else {
-          // Idle state: circle
-          Circle()
-            .fill(Color.red)
-            .frame(width: outerSize * 0.7, height: outerSize * 0.7)
+          Image(systemName: "mic.fill")
+            .font(.system(size: outerSize * 0.34, weight: .medium))
+            .foregroundStyle(Color.white)
             .transition(.scale.combined(with: .opacity))
         }
       }

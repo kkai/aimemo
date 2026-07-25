@@ -11,6 +11,10 @@ class RealTimeWhisper {
     var canTranscribe = false
     var canStop = false
     var audioLevels: [Float] = []
+    /// Elapsed recording time in seconds. Counts up while recording, frozen at
+    /// the final duration after stop. Drives the timer label on the recording screen.
+    var elapsedTime: TimeInterval = 0
+    @ObservationIgnored private var timerTask: Task<Void, Never>?
     var currentModel: WhisperModel = .selected
     var currentEngine: TranscriptionEngine = .selected
 
@@ -108,6 +112,7 @@ class RealTimeWhisper {
         // Record start time for auto-save
         recordingStartTime = Date()
         dataFloats = []  // Clear previous recording data
+        startTimer()
 
         // Check which engine to use
         if currentEngine == .appleSpeech {
@@ -292,7 +297,37 @@ class RealTimeWhisper {
         return normalizedLevel
     }
     
+    // MARK: - Elapsed timer
+
+    private func startTimer() {
+        elapsedTime = 0
+        timerTask?.cancel()
+        timerTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
+                guard let self, let start = self.recordingStartTime, self.canStop else { break }
+                self.elapsedTime = Date().timeIntervalSince(start)
+            }
+        }
+    }
+
+    private func stopTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+        if let start = recordingStartTime {
+            elapsedTime = Date().timeIntervalSince(start)
+        }
+    }
+
+    /// Elapsed time formatted mm:ss for the recording screen.
+    var formattedElapsedTime: String {
+        let total = Int(elapsedTime)
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+
     func stopRecord() {
+        stopTimer()
+
         // Stop based on current engine
         if currentEngine == .appleSpeech {
             appleSpeechRecognizer?.stopRecording()

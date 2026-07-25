@@ -16,6 +16,8 @@ struct aimemoApp: App {
     WindowGroup {
       ContentView()
         .environment(audioProcessor)
+        .preferredColorScheme(.dark)
+        .tint(Theme.accent)
     }
     .modelContainer(for: Recording.self)
   }

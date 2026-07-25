@@ -15,53 +15,17 @@ struct ContentView: View {
 
   @State private var selectedRecording: Recording?
   @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
-  @State private var showingHistory = false
-  @State private var showingSettings = false
 
   var body: some View {
     Group {
       if horizontalSizeClass == .compact {
-        // iPhone: Use NavigationStack with sheet for history
+        // iPhone: RecordingView owns its own header (settings/history) and sheets.
         NavigationStack {
           RecordingView()
             .navigationDestination(for: Recording.self) { recording in
               RecordingDetailView(recording: recording)
             }
-            .toolbar {
-              ToolbarItem(placement: .navigationBarLeading) {
-                HStack(spacing: 16) {
-                  #if PRO_VERSION
-                  Button {
-                    showingHistory = true
-                  } label: {
-                    Label("History", systemImage: "folder")
-                  }
-                  #endif
-
-                  Button {
-                    showingSettings = true
-                  } label: {
-                    Label("Settings", systemImage: "gear")
-                  }
-                }
-              }
-            }
-            .sheet(isPresented: $showingHistory) {
-              NavigationStack {
-                RecordingsListView()
-                  .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                      Button("Done") {
-                        showingHistory = false
-                      }
-                    }
-                  }
-              }
-            }
-            .sheet(isPresented: $showingSettings) {
-              SettingsView()
-                .environment(audioProcessor)
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
       } else {
         // iPad: Use NavigationSplitView with sidebar

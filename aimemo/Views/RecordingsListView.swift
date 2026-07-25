@@ -36,12 +36,18 @@ struct RecordingsListView: View {
             NavigationLink(value: recording) {
               RecordingRow(recording: recording)
             }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
           }
           .onDelete(perform: deleteRecordings)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .searchable(text: $viewModel.searchText, prompt: "Search recordings")
       }
     }
+    .background(Theme.background)
     .navigationTitle("History")
     .navigationDestination(for: Recording.self) { recording in
       RecordingDetailView(recording: recording)
