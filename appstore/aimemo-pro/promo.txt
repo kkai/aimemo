@@ -1,1 +1,1 @@
-On-device voice-to-text with four Whisper models, searchable history, and zero ads. Private, offline, yours to keep.
+On-device voice-to-text in ~99 languages, with four Whisper models, searchable history, and zero ads. Private, offline, yours to keep.

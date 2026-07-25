@@ -1,1 +1,5 @@
-Reliability release: fixed a potential audio-processing issue and hardened the transcription engine with an automated test suite. Recording, history, and transcription are smoother than ever.
+ai-Memo Pro 2.4 is our biggest update yet:
+
+• Multilingual transcription — Whisper now automatically detects and transcribes around 99 languages, entirely on your device.
+• Much smaller download — new compressed on-device models cut the app size by roughly 60%, with the same accuracy.
+• Redesigned interface — a cleaner dark look with a live gradient waveform, a recording timer, refined controls, and a restyled recording history.
