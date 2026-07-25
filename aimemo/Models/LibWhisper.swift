@@ -45,13 +45,17 @@ actor WhisperContext {
         params.no_context       = true
         params.single_segment   = true
         params.no_timestamps    = true
-        "auto".withCString { auto in
-            params.language         = auto
-        }
-        
+        // Keep the language C-string alive for the whole whisper_full call.
+        // (A prior `"auto".withCString { params.language = $0 }` left a dangling
+        // pointer once the closure returned, so auto-detect state — e.g.
+        // whisper_full_lang_id — was never set.)
+        let language = strdup("auto")
+        defer { free(language) }
+        params.language = UnsafePointer(language)
+
         whisper_reset_timings(context)
         print("About to run whisper_full")
-        
+
         samples.withUnsafeBufferPointer { samples in
             if (whisper_full(context, params, samples.baseAddress, Int32(samples.count)) != 0) {
                 print("Failed to run the model")
@@ -67,6 +71,14 @@ actor WhisperContext {
             transcription += String.init(cString: whisper_full_get_segment_text(context, i))
         }
         return transcription
+    }
+
+    /// The language auto-detected during the last `fullTranscribe` run, as an
+    /// ISO 639-1 code (e.g. "en", "de"). Returns nil if none was detected.
+    func detectedLanguage() -> String? {
+        let langId = whisper_full_lang_id(context)
+        guard langId >= 0, let cStr = whisper_lang_str(langId) else { return nil }
+        return String(cString: cStr)
     }
 }
 

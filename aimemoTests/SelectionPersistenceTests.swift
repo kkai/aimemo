@@ -35,20 +35,26 @@ final class SelectionPersistenceTests {
 
   // MARK: WhisperModel.selected
 
-  @Test func modelDefaultsToTinyWhenUnset() {
+  @Test func modelDefaultsToBaseWhenUnset() {
     UserDefaults.standard.removeObject(forKey: Self.modelKey)
-    #expect(WhisperModel.selected == .tiny)
+    #expect(WhisperModel.selected == .base)
   }
 
-  @Test func modelFallsBackToTinyOnGarbageValue() {
+  @Test func modelFallsBackToBaseOnGarbageValue() {
     UserDefaults.standard.set("ggml-nonexistent", forKey: Self.modelKey)
-    #expect(WhisperModel.selected == .tiny)
+    #expect(WhisperModel.selected == .base)
   }
 
   @Test func selectedModelRoundTrips() {
-    WhisperModel.selected = .base
-    #expect(WhisperModel.selected == .base)
-    #expect(UserDefaults.standard.string(forKey: Self.modelKey) == "ggml-base.en")
+    WhisperModel.selected = .small
+    #expect(WhisperModel.selected == .small)
+    #expect(UserDefaults.standard.string(forKey: Self.modelKey) == "small")
+  }
+
+  @Test func modelMigratesLegacyEnglishValue() {
+    // Users upgrading from the English-only build have a legacy filename stored.
+    UserDefaults.standard.set("ggml-medium.en", forKey: Self.modelKey)
+    #expect(WhisperModel.selected == .medium)
   }
 
   // MARK: TranscriptionEngine.selected
