@@ -16,6 +16,11 @@ Select from four multilingual Whisper models — now compressed for a much small
 RECORDING HISTORY
 All your transcriptions are automatically saved. Search and revisit past recordings anytime.
 
+LANGUAGE CONTROL
+- Automatic detection across ~99 languages, or pin a language when you are recording short clips
+- Translate to English: speak any supported language, get English text, still entirely offline
+- Custom vocabulary for names, jargon and acronyms
+
 PRIVACY FIRST
 All transcription happens on your device. Your voice data never leaves your iPhone or iPad. No internet connection required for Whisper models.
 

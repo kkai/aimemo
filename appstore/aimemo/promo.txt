@@ -1,1 +1,1 @@
-Turn speech into text in ~99 languages, entirely on your device. Whisper AI for accuracy, Apple Speech for speed — private, offline, no account needed.
+Speech to text in ~99 languages, entirely on your device. Translate to English as you speak. Private, offline, no account needed.

@@ -1,5 +1,8 @@
-ai-Memo 2.4 is our biggest update yet:
+ai-Memo 2.5 puts you in control of the language:
 
-• Multilingual transcription — Whisper now automatically detects and transcribes around 99 languages, entirely on your device.
-• Much smaller download — new compressed on-device models cut the app size by roughly 60%, with the same accuracy.
-• Redesigned interface — a cleaner dark look with a live gradient waveform, a recording timer, and refined controls.
+• Translate to English — speak any of the ~99 supported languages and get English text back, still entirely on your device.
+• Language picker — let Whisper detect the language, or pin one when you are recording short clips.
+• See what was detected — the language now appears next to the recording timer.
+• Custom vocabulary — teach it the names, jargon and acronyms it used to guess at.
+• Much smaller download — the app is now around a tenth of its previous size.
+• Share straight from the recording screen, and landscape support on iPhone and iPad.

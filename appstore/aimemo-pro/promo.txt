@@ -1,1 +1,1 @@
-On-device voice-to-text in ~99 languages, with four Whisper models, searchable history, and zero ads. Private, offline, yours to keep.
+Speech to text in ~99 languages, entirely on your device. Translate to English, keep a searchable history. Private, offline, no account.
