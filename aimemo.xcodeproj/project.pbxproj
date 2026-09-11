@@ -429,7 +429,6 @@
 				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -469,7 +468,6 @@
 				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kaikunze.aimemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -509,7 +507,6 @@
 				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "PRO_VERSION DEBUG $(inherited)";
@@ -550,7 +547,6 @@
 				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.kaikunze.aimemo-pro";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "PRO_VERSION $(inherited)";
