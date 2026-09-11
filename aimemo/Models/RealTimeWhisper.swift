@@ -73,6 +73,17 @@ class RealTimeWhisper {
 
     /// Find the URL for a given model in the bundle
     private func findModelURL(for model: WhisperModel) -> URL? {
+        if let url = bundledModelURL(for: model) {
+            return url
+        }
+        // Belt and braces: the free target ships only `base`, so never leave the
+        // app with no context at all if an unexpected selection slips through.
+        guard model != .base else { return nil }
+        print("Model \(model.resourceName) not in bundle; falling back to base")
+        return bundledModelURL(for: .base)
+    }
+
+    private func bundledModelURL(for model: WhisperModel) -> URL? {
         let resourceName = model.resourceName
 
         // Try multiple locations to find the model

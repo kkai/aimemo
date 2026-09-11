@@ -80,7 +80,10 @@ enum WhisperModel: String, CaseIterable, Identifiable {
 
   /// Maps a persisted UserDefaults value to a model, tolerating the legacy
   /// English-only filenames used before the multilingual model refresh.
-  private static func model(fromStored stored: String) -> WhisperModel? {
+  ///
+  /// Deliberately independent of `bundled`: migration and availability are
+  /// separate concerns, and `selected` applies the availability clamp on top.
+  static func model(fromStored stored: String) -> WhisperModel? {
     if let model = WhisperModel(rawValue: stored) {
       return model
     }
@@ -93,6 +96,22 @@ enum WhisperModel: String, CaseIterable, Identifiable {
     }
   }
 
+  /// Models whose .bin actually ships in this build.
+  ///
+  /// The model picker is Pro-only (`SettingsView`), so the free app could never
+  /// select anything but `base` — yet it used to bundle all four, carrying
+  /// ~750MB it could not reach. The other three are now excluded from the free
+  /// target, and this is the single source of truth for that split.
+  static var bundled: [WhisperModel] {
+    #if PRO_VERSION
+    return allCases
+    #else
+    return [.base]
+    #endif
+  }
+
+  var isBundled: Bool { Self.bundled.contains(self) }
+
   // Persist selected model using UserDefaults
   static var selected: WhisperModel {
     get {
@@ -100,7 +119,9 @@ enum WhisperModel: String, CaseIterable, Identifiable {
             let model = model(fromStored: stored) else {
         return .base  // Default model (balanced, multilingual)
       }
-      return model
+      // A value persisted by a build that shipped more models must not leave
+      // the app pointing at a .bin that is not in this bundle.
+      return model.isBundled ? model : .base
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "selectedWhisperModel")

@@ -46,15 +46,61 @@ final class SelectionPersistenceTests {
   }
 
   @Test func selectedModelRoundTrips() {
-    WhisperModel.selected = .small
-    #expect(WhisperModel.selected == .small)
-    #expect(UserDefaults.standard.string(forKey: Self.modelKey) == "small")
+    // `base` is the one model bundled in every build, so it round-trips
+    // regardless of which target hosts this suite.
+    WhisperModel.selected = .base
+    #expect(WhisperModel.selected == .base)
+    #expect(UserDefaults.standard.string(forKey: Self.modelKey) == "base")
   }
+
+  @Test func selectedModelRoundTripsForEveryBundledModel() {
+    for model in WhisperModel.bundled {
+      WhisperModel.selected = model
+      #expect(WhisperModel.selected == model)
+      #expect(UserDefaults.standard.string(forKey: Self.modelKey) == model.rawValue)
+    }
+  }
+
+  @Test func selectedModelClampsToBaseWhenNotBundled() {
+    // The free target ships only `base`. A value persisted by a build that
+    // shipped more models must not leave the app pointing at a missing .bin.
+    for model in WhisperModel.allCases where !model.isBundled {
+      UserDefaults.standard.set(model.rawValue, forKey: Self.modelKey)
+      #expect(WhisperModel.selected == .base)
+    }
+  }
+
+  // MARK: WhisperModel legacy migration
+  //
+  // Migration is independent of which models this target bundles, so these
+  // exercise `model(fromStored:)` directly rather than going through
+  // `selected`, which additionally clamps to `bundled`.
 
   @Test func modelMigratesLegacyEnglishValue() {
     // Users upgrading from the English-only build have a legacy filename stored.
-    UserDefaults.standard.set("ggml-medium.en", forKey: Self.modelKey)
-    #expect(WhisperModel.selected == .medium)
+    #expect(WhisperModel.model(fromStored: "ggml-medium.en") == .medium)
+    #expect(WhisperModel.model(fromStored: "ggml-tiny.en") == .tiny)
+    #expect(WhisperModel.model(fromStored: "ggml-base.en") == .base)
+    #expect(WhisperModel.model(fromStored: "ggml-small.en") == .small)
+  }
+
+  @Test func modelMigratesLegacyMultilingualValue() {
+    #expect(WhisperModel.model(fromStored: "ggml-medium") == .medium)
+    #expect(WhisperModel.model(fromStored: "ggml-base") == .base)
+  }
+
+  @Test func modelMigrationRejectsUnknownValue() {
+    #expect(WhisperModel.model(fromStored: "ggml-nonexistent") == nil)
+  }
+
+  @Test func everyBundledModelHasAFileInTheBundle() {
+    // Guards the free/pro resource split in project.pbxproj: if a model is
+    // listed as bundled, its .bin must actually ship.
+    for model in WhisperModel.bundled {
+      let url = Bundle.main.url(forResource: model.resourceName, withExtension: "bin", subdirectory: "models")
+        ?? Bundle.main.url(forResource: model.resourceName, withExtension: "bin")
+      #expect(url != nil, "\(model.resourceName).bin missing from the app bundle")
+    }
   }
 
   // MARK: TranscriptionEngine.selected

@@ -47,7 +47,7 @@ struct SettingsView: View {
         #if PRO_VERSION
         if selectedEngine == .whisper {
           Section {
-            ForEach(WhisperModel.allCases) { model in
+            ForEach(WhisperModel.bundled) { model in
               Button {
                 selectModel(model)
               } label: {

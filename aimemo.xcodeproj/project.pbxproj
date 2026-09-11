@@ -32,8 +32,12 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Info.pro.plist,
 				Resources/models/.gitignore,
 				Resources/samples/.gitignore,
+				Resources/models/ggml-tiny-q5_1.bin,
+				Resources/models/ggml-small-q5_1.bin,
+				Resources/models/ggml-medium-q5_0.bin,
 			);
 			target = 2AB3CD692E7473A400D00BF9 /* aimemo */;
 		};
@@ -41,6 +45,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Info.pro.plist,
 				Resources/models/.gitignore,
 				Resources/samples/.gitignore,
 			);
