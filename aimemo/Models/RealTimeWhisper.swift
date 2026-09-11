@@ -6,7 +6,6 @@ import Speech
 //@MainActor
 @Observable
 class RealTimeWhisper {
-    var messageLog = ""
     var transcribedText = ""
     var canTranscribe = false
     var canStop = false
@@ -17,6 +16,14 @@ class RealTimeWhisper {
     @ObservationIgnored private var timerTask: Task<Void, Never>?
     var currentModel: WhisperModel = .selected
     var currentEngine: TranscriptionEngine = .selected
+    /// ISO 639-1 code whisper detected for the recording in progress, surfaced
+    /// on the recording screen. Nil until the first transcription pass lands,
+    /// and while a language is pinned rather than auto-detected.
+    var detectedLanguageCode: String?
+
+    /// Options captured when recording started, so changing Settings mid-take
+    /// cannot switch language or prompt part-way through a recording.
+    @ObservationIgnored private var activeOptions: TranscriptionOptions = .current
 
     // Apple Speech recognizer (used when engine is .appleSpeech)
     private var appleSpeechRecognizer: AppleSpeechRecognizer?
@@ -123,6 +130,8 @@ class RealTimeWhisper {
         // Record start time for auto-save
         recordingStartTime = Date()
         dataFloats = []  // Clear previous recording data
+        activeOptions = .current
+        detectedLanguageCode = nil
         startTimer()
 
         // Check which engine to use
@@ -130,6 +139,9 @@ class RealTimeWhisper {
             // Use Apple Speech Recognition
             if appleSpeechRecognizer == nil {
                 appleSpeechRecognizer = AppleSpeechRecognizer()
+            } else {
+                // Settings may have changed the language since the last take.
+                appleSpeechRecognizer?.refreshLanguage()
             }
 
             // Request authorization if needed
@@ -408,10 +420,14 @@ class RealTimeWhisper {
         guard let w = whisperContext else {
             return
         }
-        await w.fullTranscribe(samples: data)
+        await w.fullTranscribe(samples: data, options: activeOptions)
         let text = await w.getTranscription()
-        messageLog += "Done: \(text)\n"
         transcribedText = "\(text) "
+        // Only meaningful when whisper was left to detect; a pinned language
+        // would just echo the user's own choice back at them.
+        if activeOptions.language == .automatic {
+            detectedLanguageCode = await w.detectedLanguage()
+        }
         canTranscribe = true
     }
 }

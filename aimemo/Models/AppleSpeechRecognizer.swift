@@ -31,8 +31,7 @@ class AppleSpeechRecognizer {
   private var recordingStartTime: Date?
 
   init() {
-    // Initialize with user's preferred language, fallback to English
-    speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    speechRecognizer = SFSpeechRecognizer(locale: Self.preferredLocale())
 
     // Check initial authorization status
     authorizationStatus = SFSpeechRecognizer.authorizationStatus()
@@ -220,5 +219,36 @@ class AppleSpeechRecognizer {
 
   func setLanguage(_ locale: Locale) {
     speechRecognizer = SFSpeechRecognizer(locale: locale)
+  }
+
+  /// Re-resolves the recognizer against the current language setting.
+  /// Called when a recording starts, since Settings may have changed since init.
+  func refreshLanguage() {
+    setLanguage(Self.preferredLocale())
+  }
+
+  /// Best supported locale for the user's language choice.
+  ///
+  /// Apple Speech has no auto-detect, so `.automatic` resolves to the device
+  /// locale rather than silently staying on US English — which is what this
+  /// used to do unconditionally, despite the store copy advertising
+  /// multi-language support for this engine.
+  static func preferredLocale(for language: TranscriptionLanguage = .selected) -> Locale {
+    let supported = SFSpeechRecognizer.supportedLocales()
+
+    func match(_ code: String) -> Locale? {
+      // Prefer an exact region match ("de-DE"), else any region of that language.
+      supported.first { $0.identifier.replacingOccurrences(of: "_", with: "-") == code }
+        ?? supported.first { $0.language.languageCode?.identifier == code }
+    }
+
+    if case .specific(let code) = language, let locale = match(code) {
+      return locale
+    }
+    if let device = Locale.current.language.languageCode?.identifier,
+       let locale = match(device) {
+      return locale
+    }
+    return Locale(identifier: "en-US")
   }
 }

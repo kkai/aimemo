@@ -123,4 +123,64 @@ struct MultilingualTranscriptionTests {
     #expect(transcribedOK >= 4, "Only \(transcribedOK)/\(Self.languages.count) languages transcribed correctly")
     print("[multilingual] transcribed OK: \(transcribedOK)/\(Self.languages.count), detected OK: \(detectedOK)/\(Self.languages.count)")
   }
+
+  // MARK: - Options (S1 translate, S3 pinned language, S5 initial_prompt)
+
+  @Test(.enabled(if: MultilingualTranscriptionTests.canRun))
+  func translateFlagTurnsGermanSpeechIntoEnglishText() async throws {
+    let model = try #require(Self.modelURL)
+    let context = try WhisperContext(path: model)
+    let samples = try Self.loadWavMono16(try #require(Self.audioURL("de")))
+
+    var options = TranscriptionOptions.default
+    options.translateToEnglish = true
+    await context.fullTranscribe(samples: samples, options: options)
+    let text = await context.getTranscription().lowercased()
+    print("[translate] de -> \"\(text)\"")
+
+    // The German fixture is about a fox, a dog and the weekend.
+    let english = ["fox", "dog", "weekend"]
+    #expect(english.contains { text.contains($0) },
+            "expected one of \(english) in translated text \"\(text)\"")
+    // And the German source words should be gone.
+    #expect(!text.contains("fuchs"), "still German: \"\(text)\"")
+  }
+
+  @Test(.enabled(if: MultilingualTranscriptionTests.canRun))
+  func pinningALanguageOverridesAutoDetection() async throws {
+    let model = try #require(Self.modelURL)
+    let context = try WhisperContext(path: model)
+    let samples = try Self.loadWavMono16(try #require(Self.audioURL("de")))
+
+    var options = TranscriptionOptions.default
+    options.language = .specific("de")
+    await context.fullTranscribe(samples: samples, options: options)
+    let text = await context.getTranscription().lowercased()
+    print("[pinned] de -> \"\(text)\"")
+
+    #expect(["fuchs", "hund", "wochenende"].contains { text.contains($0) },
+            "pinned German transcription lost its keywords: \"\(text)\"")
+  }
+
+  @Test(.enabled(if: MultilingualTranscriptionTests.canRun))
+  func initialPromptDoesNotLeakIntoOrBreakTheTranscript() async throws {
+    // whisper seeds `initial_prompt` into the decoder as context. This asserts
+    // the plumbing is sound - the prompt biases spelling without being emitted
+    // as text and without degrading the transcript. Whether a given seeded term
+    // actually changes an output spelling is model-dependent and not asserted.
+    let model = try #require(Self.modelURL)
+    let context = try WhisperContext(path: model)
+    let samples = try Self.loadWavMono16(try #require(Self.audioURL("en")))
+
+    var options = TranscriptionOptions.default
+    options.customVocabulary = "Kaikunze, SwiftData, whisper.cpp"
+    await context.fullTranscribe(samples: samples, options: options)
+    let text = await context.getTranscription().lowercased()
+    print("[prompt] en -> \"\(text)\"")
+
+    #expect(["fox", "seashore"].contains { text.contains($0) },
+            "prompt broke transcription: \"\(text)\"")
+    #expect(!text.contains("kaikunze"), "prompt leaked into the transcript: \"\(text)\"")
+  }
 }
+

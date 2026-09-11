@@ -28,7 +28,7 @@ actor WhisperContext {
         whisper_free(context)
     }
     
-    func fullTranscribe(samples: [Float]) {
+    func fullTranscribe(samples: [Float], options: TranscriptionOptions = .default) {
         // Leave 2 processors free (i.e. the high-efficiency cores).
         let maxThreads = max(1, min(8, cpuCount() - 2))
         print("Selecting \(maxThreads) threads")
@@ -39,19 +39,25 @@ actor WhisperContext {
         params.print_progress   = false
         params.print_timestamps = true
         params.print_special    = false
-        params.translate        = false
+        params.translate        = options.translateToEnglish
         params.n_threads        = Int32(maxThreads)
         params.offset_ms        = 0
         params.no_context       = true
         params.single_segment   = true
         params.no_timestamps    = true
-        // Keep the language C-string alive for the whole whisper_full call.
+        // Keep the C-strings alive for the whole whisper_full call.
         // (A prior `"auto".withCString { params.language = $0 }` left a dangling
         // pointer once the closure returned, so auto-detect state — e.g.
-        // whisper_full_lang_id — was never set.)
-        let language = strdup("auto")
+        // whisper_full_lang_id — was never set. Same trap applies to the prompt.)
+        let language = strdup(options.language.code)
         defer { free(language) }
         params.language = UnsafePointer(language)
+
+        let prompt = options.initialPrompt.map { strdup($0) }
+        defer { if let prompt { free(prompt) } }
+        if let prompt {
+            params.initial_prompt = UnsafePointer(prompt)
+        }
 
         whisper_reset_timings(context)
         print("About to run whisper_full")

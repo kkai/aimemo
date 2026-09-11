@@ -51,9 +51,20 @@ struct RecordingView: View {
               VStack(spacing: 6) {
                 AudioWaveformView(levels: audioProcessor.audioLevels)
                   .frame(height: 60)
-                Text(audioProcessor.formattedElapsedTime)
-                  .font(.system(size: 15, weight: .regular).monospacedDigit())
-                  .foregroundStyle(Theme.textSecondary)
+                HStack(spacing: 8) {
+                  Text(audioProcessor.formattedElapsedTime)
+                    .font(.system(size: 15, weight: .regular).monospacedDigit())
+                  if let code = audioProcessor.detectedLanguageCode {
+                    Text("·")
+                    // The app has detected ~99 languages since 2.4 without ever
+                    // saying so; this is the only place the user can see it work.
+                    Text(TranscriptionLanguage.localizedName(for: code))
+                      .font(.system(size: 15, weight: .medium))
+                      .transition(.opacity)
+                  }
+                }
+                .foregroundStyle(Theme.textSecondary)
+                .animation(.easeInOut(duration: 0.2), value: audioProcessor.detectedLanguageCode)
               }
 
               transcriptCard

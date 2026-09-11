@@ -13,6 +13,9 @@ struct SettingsView: View {
 
   @State private var selectedModel: WhisperModel = .selected
   @State private var selectedEngine: TranscriptionEngine = .selected
+  @State private var selectedLanguage: TranscriptionLanguage = .selected
+  @State private var translateToEnglish = TranscriptionOptions.translateToEnglishSetting
+  @State private var customVocabulary = TranscriptionOptions.customVocabularySetting
   @State private var isLoadingModel = false
   @State private var showingAlert = false
   @State private var alertMessage = ""
@@ -99,6 +102,58 @@ struct SettingsView: View {
               .font(.caption)
           } else {
             Text("Whisper models provide higher accuracy using offline AI models.")
+              .font(.caption)
+          }
+        }
+
+        // Language
+        Section {
+          Picker("Language", selection: $selectedLanguage) {
+            Text(TranscriptionLanguage.automatic.displayName)
+              .tag(TranscriptionLanguage.automatic)
+            if let device = TranscriptionLanguage.deviceLanguage {
+              Text(device.displayName).tag(device)
+            }
+            Divider()
+            ForEach(TranscriptionLanguage.allSpecific) { language in
+              Text(language.displayName).tag(language)
+            }
+          }
+          .onChange(of: selectedLanguage) { _, newValue in
+            TranscriptionLanguage.selected = newValue
+          }
+        } header: {
+          Text("Language")
+        } footer: {
+          Text(selectedEngine == .whisper
+               ? "Whisper detects the language automatically. Pick one to pin it — auto-detect can misfire on very short clips."
+               : "Apple Speech cannot detect the language automatically; Automatic uses your device language.")
+            .font(.caption)
+        }
+
+        // Translate (Whisper only — Apple Speech has no translation mode)
+        if selectedEngine == .whisper {
+          Section {
+            Toggle("Translate to English", isOn: $translateToEnglish)
+              .onChange(of: translateToEnglish) { _, newValue in
+                TranscriptionOptions.translateToEnglishSetting = newValue
+              }
+          } footer: {
+            Text("Speak any supported language and get English text. Whisper translates into English only.")
+              .font(.caption)
+          }
+
+          Section {
+            TextField("Names, jargon, acronyms", text: $customVocabulary, axis: .vertical)
+              .lineLimit(2...4)
+              .autocorrectionDisabled()
+              .onChange(of: customVocabulary) { _, newValue in
+                TranscriptionOptions.customVocabularySetting = newValue
+              }
+          } header: {
+            Text("Custom Vocabulary")
+          } footer: {
+            Text("Words Whisper should expect, separated by commas. Helps it spell names and technical terms it would otherwise guess at.")
               .font(.caption)
           }
         }
