@@ -16,6 +16,7 @@ struct aimemoApp: App {
     WindowGroup {
       ContentView()
         .environment(audioProcessor)
+        .task { ReviewPrompt.registerLaunch() }
         .preferredColorScheme(.dark)
         .tint(Theme.accent)
     }

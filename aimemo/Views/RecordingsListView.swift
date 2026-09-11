@@ -14,7 +14,6 @@ struct RecordingsListView: View {
 
   @Environment(\.modelContext) private var modelContext
   @State private var viewModel = RecordingsViewModel()
-  @State private var selectedRecording: Recording?
   @State private var showingShareSheet = false
   @State private var shareItems: [Any] = []
 
@@ -39,6 +38,31 @@ struct RecordingsListView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+              Button {
+                share(recording)
+              } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+              }
+              .tint(Theme.accent)
+            }
+            .contextMenu {
+              Button {
+                share(recording)
+              } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+              }
+              Button {
+                UIPasteboard.general.string = recording.transcriptText
+              } label: {
+                Label("Copy Transcript", systemImage: "doc.on.doc")
+              }
+              Button {
+                viewModel.editRecording(recording)
+              } label: {
+                Label("Edit Title", systemImage: "pencil")
+              }
+            }
           }
           .onDelete(perform: deleteRecordings)
         }
@@ -65,6 +89,14 @@ struct RecordingsListView: View {
     .sheet(isPresented: $showingShareSheet) {
       ShareSheet(items: shareItems)
     }
+  }
+
+  /// The share sheet and its items were declared here but never populated, so
+  /// sharing only ever worked from the detail view. Reuses the same
+  /// `RecordingsViewModel.shareRecording` payload.
+  private func share(_ recording: Recording) {
+    shareItems = viewModel.shareRecording(recording)
+    showingShareSheet = true
   }
 
   private func deleteRecordings(at offsets: IndexSet) {

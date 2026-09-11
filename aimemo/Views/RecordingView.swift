@@ -136,7 +136,7 @@ struct RecordingView: View {
       .frame(maxHeight: 220)
 
       HStack(spacing: 12) {
-        ActionButton(title: "Copy to clipboard", systemName: "doc.on.doc", tint: Theme.accent) {
+        ActionButton(title: "Copy", systemName: "doc.on.doc", tint: Theme.accent) {
           #if os(iOS)
           UIPasteboard.general.setValue(audioProcessor.transcribedText,
                                         forPasteboardType: UTType.plainText.identifier)
@@ -144,12 +144,27 @@ struct RecordingView: View {
           NSPasteboard.general.setString(audioProcessor.transcribedText, forType: .string)
           #endif
         }
-        ActionButton(title: "Delete text", systemName: "trash", tint: Theme.danger) {
+        // Sharing previously required saving first, which the free app never
+        // does - so a free user could only ever copy-paste out of the app.
+        ShareLink(item: audioProcessor.transcribedText) {
+          HStack(spacing: 8) {
+            Image(systemName: "square.and.arrow.up")
+            Text("Share")
+          }
+          .actionButtonStyle(tint: Theme.accent)
+        }
+        .buttonStyle(.plain)
+        ActionButton(title: "Clear", systemName: "trash", tint: Theme.danger) {
           audioProcessor.transcribedText = ""
         }
       }
     }
     .cardSurface()
+  }
+
+  private var activeScene: UIWindowScene? {
+    UIApplication.shared.connectedScenes
+      .first { $0.activationState == .foregroundActive } as? UIWindowScene
   }
 
   private var recordButton: some View {
@@ -172,6 +187,13 @@ struct RecordingView: View {
         Task {
           audioProcessor.stopRecord()
           audioProcessor.canStop = false
+          // Count only takes that actually produced text - a recording that
+          // transcribed nothing is not evidence the app was useful.
+          let transcript = audioProcessor.transcribedText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+          if !transcript.isEmpty, ReviewPrompt.recordTranscription() {
+            ReviewPrompt.requestIfAppropriate(in: activeScene)
+          }
         }
       }
     )

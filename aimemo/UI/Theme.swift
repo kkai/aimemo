@@ -94,18 +94,14 @@ struct CircleIconButton: View {
 
 // MARK: - Pill action button (Copy / Delete / detail actions)
 
-struct ActionButton: View {
-  let title: String
-  let systemName: String
+/// The tinted pill used for the transcript actions. Factored out of
+/// `ActionButton` so `ShareLink`, which builds its own button, can wear the
+/// same style.
+struct ActionButtonStyleModifier: ViewModifier {
   let tint: Color
-  let action: () -> Void
 
-  var body: some View {
-    Button(action: action) {
-      HStack(spacing: 8) {
-        Image(systemName: systemName)
-        Text(title)
-      }
+  func body(content: Content) -> some View {
+    content
       .font(.system(size: 15, weight: .medium))
       .foregroundStyle(tint)
       .frame(maxWidth: .infinity)
@@ -118,6 +114,28 @@ struct ActionButton: View {
         RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
           .stroke(tint.opacity(0.35), lineWidth: 1)
       )
+  }
+}
+
+extension View {
+  func actionButtonStyle(tint: Color) -> some View {
+    modifier(ActionButtonStyleModifier(tint: tint))
+  }
+}
+
+struct ActionButton: View {
+  let title: String
+  let systemName: String
+  let tint: Color
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      HStack(spacing: 8) {
+        Image(systemName: systemName)
+        Text(title)
+      }
+      .actionButtonStyle(tint: tint)
     }
     .buttonStyle(.plain)
   }
