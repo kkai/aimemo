@@ -1,760 +1,268 @@
-# ai-Memo Pro - Feature Suggestions
+# ai-Memo / ai-Memo Pro — Feature Brainstorm (v2.4 → next)
 
-*Comprehensive feature brainstorming for future development*
+## Context
 
-## Current Features (v1.0)
+This document replaces the 2025-11-11 version, which predated `ROADMAP.md` and had
+drifted (its revenue section proposed a subscription tier the roadmap has since
+overruled, and it lists as "missing" several things that have shipped).
 
-- Real-time voice transcription using Whisper.cpp
-- Four model options (tiny, base, small, medium) with dynamic switching
-- Auto-save recordings with SwiftData persistence
-- History view with search functionality
-- Edit recording titles
-- Copy to clipboard and share transcripts
-- Audio waveform visualization during recording
-- Adaptive UI (iPhone modal sheets, iPad sidebar)
-- No ads (Pro version)
+`ROADMAP.md` in the outer folder remains authoritative for committed priorities. This
+file is the wider idea pool: it deliberately does **not** restate the roadmap, but
+covers what it misses and re-sequences what it contains against what the code actually
+does today.
+
+**Where the app is (verified, v2.4, commit `44c8506`):** a single-screen offline
+dictation pad. ~2,600 LOC, 20 source files. Whisper (4 bundled quantized multilingual
+models) or Apple Speech. Pro adds a searchable text-only history plus the model picker —
+that is the entire `PRO_VERSION` surface (5 guards, in `RecordingView.swift`,
+`SettingsView.swift`, `RealTimeWhisper.swift:343`). No StoreKit, no widgets, no App
+Intents, no file import, no iCloud, no stored audio, no analytics.
+
+Three findings from this pass that neither planning doc records, and that reshape the
+priority order:
+
+1. **The free app ships ~780 MB of models it can never use.** `project.pbxproj:30-48`
+   is a `PBXFileSystemSynchronizedRootGroup` excluding only `Info.plist`, so both targets
+   bundle all four models — but `SettingsView.swift:47` hides the model picker behind
+   `#if PRO_VERSION`, locking free users to `base` (57 MB).
+2. **Transcription is O(n²) and unbounded.** `RealTimeWhisper.swift:227-231` appends to
+   `dataFloats` and re-transcribes *the entire accumulated buffer* on every tap callback.
+   A 60-minute recording holds ~230 MB of float32 in memory and re-runs whisper over all
+   of it, repeatedly. Every long-form feature is gated on fixing this.
+3. **Zero accessibility modifiers and zero localization.** No `.accessibilityLabel`
+   anywhere in `Views/` or `UI/`; no `.xcstrings`, no `.lproj`. The app transcribes ~99
+   languages behind an English-only, screen-reader-hostile UI.
+
+Scope: both SKUs, keeping the two-paid-SKU model and sharpening the split between
+them. Ideas are ranked by ROI across the full effort range.
 
 ---
 
-## Proposed Features by Category
-
-### 1. Enhanced Export & Integration
-
-#### Export Formats
-- **PDF Export**: Generate formatted PDFs with title, date, duration header, and styled transcript
-  - Complexity: Medium (2-3 days)
-  - Dependencies: PDFKit
-  - Value: High - professional documentation
-
-- **Document Formats**: Export as Word/RTF, plain text (.txt), Markdown
-  - Complexity: Low-Medium (1-2 days per format)
-  - Value: Medium - workflow flexibility
-
-- **Batch Export**: Select multiple recordings and export as single document or archive
-  - Complexity: Medium (3-4 days)
-  - Value: Medium - time-saving for power users
-
-#### Cloud Integration
-- **iCloud Sync**: Sync recordings across all devices
-  - Complexity: High (1-2 weeks)
-  - Dependencies: CloudKit
-  - Value: Critical - expected Pro feature
-
-- **System Integration**:
-  - Export to Apple Notes app
-  - Link to Voice Memos entries
-  - Save to Files app with custom organization
-  - Complexity: Medium (2-3 days each)
-  - Value: High - seamless workflow
-
-- **Shortcuts Support**: Full Shortcuts app integration for automation
-  - Complexity: Medium-High (1 week)
-  - Dependencies: App Intents framework
-  - Value: High - power user appeal
-
-#### Third-Party Integrations
-- **Note Apps**: Export to Notion, Evernote, OneNote
-  - Complexity: Medium-High (3-5 days each)
-  - Dependencies: API keys, OAuth
-  - Value: Medium - niche but valuable
-
-- **Communication**: Email transcript directly, share to Messages
-  - Complexity: Low (1-2 days)
-  - Value: Medium - convenience
-
-### 2. Advanced Transcription Features
-
-#### Language Support
-- **Multi-language Models**: Support for Spanish, French, German, Japanese, etc.
-  - Complexity: Medium (need multilingual Whisper models)
-  - Storage: +500MB-1.5GB per language
-  - Value: Very High - market expansion
-
-- **Language Auto-detection**: Automatically detect and transcribe in detected language
-  - Complexity: High (model switching mid-recording)
-  - Value: High - user convenience
-
-- **Mixed-language Support**: Handle code-switching within single recording
-  - Complexity: Very High
-  - Value: Medium - specific use case
-
-#### Transcription Enhancements
-- **Timestamps**: Configurable timestamp insertion (every 30s, 1min, 5min)
-  - Complexity: Low (1 day)
-  - Value: High - meeting notes, interviews
-
-- **Speaker Diarization**: Identify and label different speakers (Speaker 1, Speaker 2)
-  - Complexity: Very High (requires additional ML model)
-  - Value: Very High - meetings, interviews
-
-- **Paragraph Detection**: Automatically break transcript into logical paragraphs
-  - Complexity: Medium (NLP logic)
-  - Value: Medium - readability
-
-- **Punctuation Enhancement**: Improve automatic punctuation and capitalization
-  - Complexity: Medium (post-processing pipeline)
-  - Value: Medium - professional quality
-
-- **Custom Vocabulary**: Add domain-specific terms, names, technical jargon
-  - Complexity: High (Whisper.cpp integration)
-  - Value: High - accuracy improvement
-
-- **Confidence Scoring**: Show transcription confidence, highlight uncertain words
-  - Complexity: Medium (Whisper already provides this)
-  - Value: Medium - quality awareness
-
-- **Re-transcribe**: Option to re-transcribe with different model or settings
-  - Complexity: Medium (requires storing audio)
-  - Value: Medium - quality improvement
-
-### 3. Audio Management
-
-#### Audio Playback
-- **Store Original Audio**: Keep audio file alongside transcript
-  - Complexity: Medium (storage management, compression)
-  - Storage: ~1MB per minute (M4A)
-  - Value: Very High - verification, review
-
-- **Synced Playback**: Play audio with transcript highlighting current position
-  - Complexity: High (1-2 weeks)
-  - Value: Very High - professional feature
-
-- **Audio Editing**: Trim, split, merge audio segments
-  - Complexity: High (AVFoundation editing)
-  - Value: Medium - advanced use case
-
-- **Playback Controls**: Speed control (0.5x - 2x), skip 15s forward/back
-  - Complexity: Low-Medium (2-3 days)
-  - Value: Medium - convenience
-
-#### Recording Features
-- **Pause/Resume**: Pause recording without stopping, resume later
-  - Complexity: Medium (3-5 days)
-  - State management challenges
-  - Value: Very High - essential UX improvement
-
-- **Background Recording**: Continue recording when app is in background
-  - Complexity: Medium (background modes, audio session)
-  - Battery considerations
-  - Value: High - real-world usage
-
-- **Recording Quality Settings**: Configure sample rate, bitrate
-  - Complexity: Low (2 days)
-  - Value: Low - most users won't need this
-
-- **Noise Reduction**: Toggle noise cancellation during recording
-  - Complexity: Medium (audio processing)
-  - Value: Medium - quality improvement
-
-#### Audio Export
-- **Multiple Formats**: Export audio as M4A, MP3, WAV
-  - Complexity: Medium (format conversion)
-  - Value: Medium - compatibility
-
-- **Audio Processing**: Normalize volume, trim silence
-  - Complexity: Medium-High
-  - Value: Low-Medium - advanced feature
-
-### 4. Organization & Search
-
-#### Advanced Organization
-- **Tags/Labels**: Add multiple tags to recordings for categorization
-  - Complexity: Medium (4-5 days)
-  - SwiftData schema update
-  - Value: High - better organization
-
-- **Folders/Categories**: Organize recordings in hierarchical folders
-  - Complexity: Medium-High (1 week)
-  - Value: High - large collections
-
-- **Color Coding**: Assign colors to recordings or categories
-  - Complexity: Low (2 days)
-  - Value: Low-Medium - visual organization
-
-- **Favorites**: Star important recordings
-  - Complexity: Low (1 day)
-  - Value: Medium - quick access
-
-- **Archive**: Move old recordings to archive (hide from main view)
-  - Complexity: Low-Medium (2-3 days)
-  - Value: Medium - declutter
-
-#### Search & Filter
-- **Date Range Filter**: Filter by date range (last 7 days, this month, custom)
-  - Complexity: Low-Medium (2-3 days)
-  - Value: High - common use case
-
-- **Duration Filter**: Filter by recording length (short, medium, long)
-  - Complexity: Low (1 day)
-  - Value: Low-Medium
-
-- **Model Filter**: Filter by which model was used
-  - Complexity: Low (1 day)
-  - Value: Low
-
-- **Tag Filter**: Filter by tags/categories
-  - Complexity: Medium (depends on tag implementation)
-  - Value: High - powerful organization
-
-- **Combined Filters**: Apply multiple filters simultaneously
-  - Complexity: Medium (3-4 days)
-  - Value: High - power users
-
-#### Smart Collections
-- **Smart Folders**: Auto-updating collections based on rules
-  - Recent (last 7 days)
-  - Long recordings (>5 min)
-  - Today's recordings
-  - Untagged recordings
-  - Complexity: Medium-High (1 week)
-  - Value: Medium-High - automation
-
-### 5. Editing & Annotation
-
-#### Transcript Editing
-- **Direct Editing**: Edit transcript text directly in-place
-  - Complexity: Medium (3-5 days)
-  - Version control considerations
-  - Value: High - accuracy correction
-
-- **Notes/Annotations**: Add notes or comments to transcript
-  - Complexity: Medium (4-5 days)
-  - Value: Medium - context addition
-
-- **Highlighting**: Highlight important sections with colors
-  - Complexity: Medium (attributed text)
-  - Value: Medium - emphasis
-
-- **Bookmarks**: Add named bookmarks within long transcripts
-  - Complexity: Medium (3-4 days)
-  - Value: Medium - navigation
-
-- **Split/Merge**: Split long recordings into chapters, merge multiple recordings
-  - Complexity: High (1-2 weeks)
-  - Value: Medium - organization
-
-#### Rich Text Support
-- **Text Formatting**: Bold, italic, underline, strikethrough
-  - Complexity: Medium-High (rich text editor)
-  - Value: Medium - visual emphasis
-
-- **Lists**: Bullet points and numbered lists
-  - Complexity: Medium
-  - Value: Medium - note-taking
-
-- **Sections**: Headers, subheaders for structure
-  - Complexity: Medium
-  - Value: Medium - long documents
-
-### 6. AI-Powered Features
-
-#### Content Analysis
-- **Auto-summarization**: Generate concise summary of transcript
-  - Options:
-    1. Local LLM (on-device, privacy-focused)
-    2. Cloud API (Claude, OpenAI)
-  - Complexity: High (1-2 weeks)
-  - Value: Very High - time-saving, unique feature
-
-- **Action Items Extraction**: Automatically identify and extract TODOs
-  - Complexity: High (NLP or LLM)
-  - Value: Very High - productivity boost
-
-- **Key Points**: Extract main points from transcript
-  - Complexity: High
-  - Value: High - quick review
-
-- **Auto-title Generation**: Generate meaningful title from content
-  - Complexity: Medium (first 100 words + LLM)
-  - Value: High - convenience
-
-- **Topic Classification**: Auto-categorize recordings by topic
-  - Complexity: Medium-High
-  - Value: Medium - automation
-
-- **Sentiment Analysis**: Detect emotional tone (positive, negative, neutral)
-  - Complexity: Medium
-  - Value: Low-Medium - niche use case
-
-#### Smart Suggestions
-- **Auto-tagging**: Suggest tags based on content analysis
-  - Complexity: Medium-High
-  - Value: Medium-High - organization help
-
-- **Related Recordings**: Find similar recordings by content
-  - Complexity: High (semantic search)
-  - Value: Medium - research use case
-
-- **Trend Detection**: Identify recurring topics across recordings
-  - Complexity: High
-  - Value: Low-Medium - analytics
-
-### 7. Privacy & Security
-
-#### Data Protection
-- **Local Encryption**: Encrypt recordings at rest
-  - Complexity: Medium (3-5 days)
-  - CryptoKit integration
-  - Value: Medium-High - privacy-conscious users
-
-- **Biometric Lock**: Face ID/Touch ID to access app
-  - Complexity: Low-Medium (2-3 days)
-  - Value: Medium - privacy
-
-- **Password Protection**: Alternative to biometric lock
-  - Complexity: Low (2 days)
-  - Value: Low-Medium
-
-- **Private Folders**: Separate encrypted folders for sensitive recordings
-  - Complexity: Medium-High
-  - Value: Medium - privacy segmentation
-
-- **Secure Deletion**: Overwrite deleted recordings multiple times
-  - Complexity: Low-Medium
-  - Value: Low - paranoid users
-
-- **Retention Policies**: Auto-delete recordings after X days
-  - Complexity: Medium
-  - Value: Medium - compliance, privacy
-
-#### Privacy Controls
-- **Sync Opt-out**: Choose which recordings sync to cloud
-  - Complexity: Low-Medium
-  - Value: Medium - selective privacy
-
-- **Private Flag**: Mark recordings as private (don't share, don't sync)
-  - Complexity: Low
-  - Value: Medium
-
-- **Audio-only Mode**: Record audio but don't store transcript
-  - Complexity: Low
-  - Value: Low - edge case
-
-### 8. Productivity Tools
-
-#### Templates
-- **Recording Templates**: Pre-configured templates for common use cases
-  - Meeting notes (attendees, agenda, decisions, action items)
-  - Interview (interviewer, interviewee, questions)
-  - Lecture notes (course, instructor, date, topic)
-  - Journal entry (date, mood, reflection)
-  - Custom templates
-  - Complexity: Medium-High (1-2 weeks)
-  - Value: High - professional users
-
-#### Automation
-- **Scheduled Recordings**: Start recording at specific time
-  - Complexity: Medium-High (background tasks)
-  - Value: Low-Medium - niche
-
-- **Auto-delete Old**: Automatically delete recordings older than X days
-  - Complexity: Low-Medium
-  - Value: Medium - storage management
-
-- **Auto-export**: Automatically export completed recordings to Notes/Files
-  - Complexity: Medium
-  - Value: Medium - workflow automation
-
-- **Location-based Tags**: Auto-tag based on GPS location
-  - Complexity: Medium (Core Location)
-  - Value: Low-Medium - context
-
-- **Workflow Builder**: Create custom automation workflows
-  - Complexity: Very High
-  - Value: Medium-High - power users
-
-#### Task Management
-- **TODO Extraction**: Parse and extract action items from transcript
-  - Complexity: High (NLP or AI)
-  - Value: Very High - productivity
-
-- **Reminders Integration**: Send extracted TODOs to Reminders app
-  - Complexity: Medium
-  - Value: High - seamless workflow
-
-- **Calendar Events**: Create calendar events from transcript mentions
-  - Complexity: Medium-High (date/time parsing)
-  - Value: Medium - automation
-
-### 9. Statistics & Analytics
-
-#### Usage Stats
-- **Dashboard**: Visual overview of recording activity
-  - Total recording time
-  - Total recordings count
-  - Average recording length
-  - Storage usage
-  - Most used model
-  - Complexity: Medium (4-5 days)
-  - Value: Low-Medium - curiosity
-
-- **Charts**: Visualize recording trends over time
-  - Complexity: Medium (Charts framework)
-  - Value: Low - analytics enthusiasts
-
-#### Insights
-- **Activity Patterns**: When you record most (time of day, day of week)
-  - Complexity: Medium
-  - Value: Low - interesting but not actionable
-
-- **Word Count Statistics**: Total words, average words per recording
-  - Complexity: Low
-  - Value: Low
-
-- **Speaking Rate**: Words per minute analysis
-  - Complexity: Low-Medium
-  - Value: Low - public speaking training
-
-- **Topic Trends**: Most frequent topics/words across all recordings
-  - Complexity: Medium-High (NLP)
-  - Value: Low-Medium - research use case
-
-### 10. UI/UX Enhancements
-
-#### Visual Customization
-- **Theme Support**: Light, dark, auto (follows system)
-  - Note: Already supported by SwiftUI
-  - Complexity: N/A
-  - Value: N/A
-
-- **Accent Colors**: Choose custom accent color for UI
-  - Complexity: Low (2 days)
-  - Value: Low - personalization
-
-- **Font Size**: Adjustable font sizes throughout app
-  - Complexity: Low (Dynamic Type)
-  - Value: Medium - accessibility
-
-- **Waveform Colors**: Customize waveform visualization colors
-  - Complexity: Low (1 day)
-  - Value: Low - personalization
-
-- **App Icons**: Alternative app icon options
-  - Complexity: Low (2-3 days)
-  - Value: Low-Medium - personalization
-
-#### Accessibility
-- **VoiceOver Optimization**: Full VoiceOver support for blind users
-  - Complexity: Medium (accessibility auditing)
-  - Value: High - accessibility compliance
-
-- **Dynamic Type**: Support all text sizes
-  - Complexity: Low-Medium
-  - Value: High - accessibility
-
-- **High Contrast**: High contrast mode for visibility
-  - Complexity: Low
-  - Value: Medium - accessibility
-
-- **Reduced Motion**: Respect reduced motion preference
-  - Complexity: Low
-  - Value: Medium - accessibility
-
-#### User Experience
-- **Home Screen Widget**: Quick record widget, recent recordings widget
-  - Complexity: Medium (1 week)
-  - WidgetKit
-  - Value: High - convenience
-
-- **Apple Watch App**: Quick recording from watch
-  - Complexity: High (2-3 weeks)
-  - WatchOS development
-  - Value: Medium-High - convenience
-
-- **Mac Catalyst**: Native Mac version
-  - Complexity: Medium-High (2-3 weeks)
-  - UI adaptations needed
-  - Value: Medium - desktop users
-
-- **Keyboard Shortcuts**: iPad keyboard shortcuts for common actions
-  - Complexity: Low-Medium (2-3 days)
-  - Value: Medium - iPad power users
-
-- **Drag & Drop**: Drag recordings to share, export, organize
-  - Complexity: Medium (3-5 days)
-  - Value: Medium - iPad users
-
-- **Contextual Menus**: Long-press menus for quick actions
-  - Complexity: Low-Medium
-  - Value: Medium - efficiency
-
-### 11. Collaboration Features
-
-#### Sharing & Collaboration
-- **Shared Recordings**: Share recordings with edit permissions
-  - Complexity: Very High (CloudKit sharing)
-  - Value: Low-Medium - niche use case
-
-- **Collaborative Transcripts**: Multiple users can edit same transcript
-  - Complexity: Very High (real-time sync, conflict resolution)
-  - Value: Low - niche, complex
-
-- **Comments**: Add comments on specific parts of transcript
-  - Complexity: High
-  - Value: Low-Medium - team collaboration
-
-- **Version History**: Track changes to transcripts over time
-  - Complexity: High
-  - Value: Low-Medium - audit trail
+## Three structural unlocks
+
+Most of the interesting ideas below depend on one of these. Doing them first turns a
+dozen "hard" features into small ones.
+
+| # | Unlock | Where | What it gates |
+|---|--------|-------|---------------|
+| **U1** | Chunked/incremental transcription — commit finished segments, keep a sliding window, stop re-transcribing history | `RealTimeWhisper.swift:227-231` | Long recordings, file import, background recording, battery, meetings |
+| **U2** | Store the audio (m4a alongside the transcript) | `Recording.swift` + save path `RealTimeWhisper.swift:348` | Playback, re-transcription, audio export, trimming |
+| **U3** | Turn timestamps on — `no_timestamps=false`, `single_segment=false`, plus `token_timestamps` / `max_len` / `split_on_word` | `LibWhisper.swift:38-47` | SRT/VTT export, synced highlighting, chapters, jump-to-word |
+
+Note on U3: `ROADMAP.md` Phase 2 says synced playback can use "the segment timestamps
+whisper already emits" — it currently emits none. They are explicitly disabled. The
+vendored `whisper.h` does expose all the flags (`:492-496`), so it is a config change,
+but it changes the streaming shape and needs the `RealTimeWhisper` state tests the
+roadmap already calls for.
 
 ---
 
-## Priority Tiers & Roadmap
+## Tier S — near-free wins (hours to a day each)
 
-### Tier 1: Quick Wins (1-2 weeks each)
-*Essential features that provide immediate value with reasonable effort*
+Ordered by value. Every one of these is small enough to batch into a single release.
 
-1. **Pause/Resume Recording** (5 days)
-   - Most requested UX improvement
-   - Moderate complexity, high impact
+**S0. Drop the unused models from the free target.** ~810 MB → ~80 MB download for the
+top-of-funnel app. Add `Resources/models/ggml-tiny-q5_1.bin`, `ggml-small-q5_1.bin`,
+`ggml-medium-q5_0.bin` to the free target's `membershipExceptions` in
+`project.pbxproj:30-38`. Does not violate the "works out of the box" principle — free
+never exposed those models. Biggest single conversion lever here, and it costs a
+pbxproj edit.
 
-2. **PDF Export** (3 days)
-   - Professional documentation need
-   - Medium complexity, high value
+**S1. Translate-to-English toggle.** `params.translate` (`LibWhisper.swift:42`) is
+hardcoded `false`. Flipping it gives any-language → English transcription, free, using
+the models already bundled. One boolean, one settings row, and a genuine App Store
+headline: *"Record in any language. Get English text."*
 
-3. **Timestamps in Transcript** (1 day)
-   - Simple implementation, professional output
-   - Low complexity, high value
+**S2. Show the detected language.** `WhisperContext.detectedLanguage()` exists and is
+never called from anywhere. Badge it on the recording screen and persist it on
+`Recording`. The multilingual capability is currently invisible to users.
 
-4. **Tags/Labels** (5 days)
-   - Better organization for growing collections
-   - Medium complexity, high value
+**S3. Language override picker.** Already scoped in `ROADMAP.md` Phase 1 and deferred.
+`params.language` is already a `strdup`'d string, so this is a picker seeded from
+`Locale.current` feeding one value. Fixes auto-detect misfiring on short clips.
 
-5. **iCloud Sync** (10 days)
-   - Critical for Pro version differentiation
-   - High complexity, critical value
+**S4. Fix Apple Speech's hardcoded locale.** `AppleSpeechRecognizer.swift` constructs
+`SFSpeechRecognizer(locale: Locale(identifier: "en-US"))`; `setLanguage(_:)` and
+`availableLanguages()` exist but are never called. The App Store copy advertises
+multi-language for this engine. Wire S3's picker to it.
 
-**Estimated Total: 4-5 weeks**
+**S5. Custom vocabulary via `initial_prompt`.** `whisper.h:512` exposes it.
+A settings text field of names/jargon/acronyms, passed through on each call.
+`feature_suggestions.md` rates this "High complexity (14-21 days)" — it is roughly
+20 lines. Real accuracy win for technical, medical and name-heavy dictation.
 
-### Tier 2: Differentiation (2-4 weeks each)
-*Features that set ai-Memo Pro apart from competitors*
+**S6. ASO keyword fix.** `appstore/aimemo/keywords.txt` leads with **"text to speech"** —
+the opposite of what the app does — burning the most valuable slot in a 100-char field.
+Replace with speech-to-text / transcribe / dictation / voice to text / offline.
 
-1. **Audio Playback with Sync** (10 days)
-   - Major value-add for verification and review
-   - Requires storing audio + sophisticated playback UI
+**S7. Ship the dead share sheet.** `RecordingsListView` declares `showingShareSheet`
+and `shareItems` and presents a `ShareSheet`, but nothing ever sets them. Also add share
+from the live recording screen (`ROADMAP.md` Phase 2 asks for this).
 
-2. **Multi-language Support** (7 days per language)
-   - Expands addressable market significantly
-   - Requires downloading multilingual models
+**S8. Ask for App Store reviews.** No `requestReview` anywhere. Trigger after the Nth
+successful save. Free ratings lift on an app with no other growth instrumentation.
 
-3. **AI Summary Generation** (14 days)
-   - Unique selling point, huge time-saver
-   - Can use Claude API or local LLM
-   - Privacy considerations
+**S9. Landscape and iPad multitasking.** Both plists are portrait-only with
+`UIRequiresFullScreen = true`, which contradicts the `NavigationSplitView` iPad design
+and blocks Slide Over / Stage Manager. (Build settings already declare landscape keys,
+but `GENERATE_INFOPLIST_FILE = NO` means the explicit plists win.)
 
-4. **Speaker Diarization** (14-21 days)
-   - Professional use case (meetings, interviews)
-   - Requires additional ML model or API
+**S10. `PrivacyInfo.xcprivacy`.** Absent. Required-reason API manifest, and a
+privacy-first app should be showing the strongest possible nutrition label.
 
-5. **Shortcuts Integration** (7 days)
-   - Power user automation
-   - App Intents framework
-
-**Estimated Total: 2-3 months**
-
-### Tier 3: Advanced Features (1-2 months each)
-*Complex features for specialized use cases*
-
-1. **Action Item Extraction** (21 days)
-   - AI-powered productivity enhancement
-   - Requires LLM integration
-
-2. **Custom Vocabulary** (14-21 days)
-   - Domain-specific accuracy improvement
-   - Deep Whisper.cpp integration
-
-3. **Direct Transcript Editing** (10 days)
-   - Full control over output
-   - UI complexity, version management
-
-4. **Apple Watch App** (21 days)
-   - Convenience for quick captures
-   - Separate WatchOS development
-
-5. **Recording Templates** (14 days)
-   - Professional workflows
-   - Complex data modeling
-
-**Estimated Total: 3-5 months**
+**S11. Strip stale strings.** `TranscriptionEngine.swift:55` still returns
+*"English only (current models)"* months after the multilingual refresh. Also delete the
+dead `Secrets.xcconfig.template` AdMob keys and `REGISTER_APP_GROUPS = YES`.
 
 ---
 
-## Implementation Recommendations
+## Tier A — differentiators (days to ~2 weeks each)
 
-### Phase 1: Foundation (Next 2 months)
-Focus on core features that improve daily usability:
-- Pause/Resume recording
-- PDF/Text export
-- Tags for organization
-- iCloud sync
-- Timestamps
+**A1. Transcribe imported audio and video files.** ★ Highest-ROI differentiator.
+Share extension + Files import + Open-In, with `AVAssetReader` pulling the audio track
+out of mp4/mov. This converts the product from "a recorder" into "a transcription tool",
+which is what people actually search the App Store for — *transcribe audio file*,
+*mp3 to text*, *video to text*. Currently impossible: there are no document types, no
+extension target, and no import path at all. **Needs U1** to be practical on a
+90-minute file.
 
-### Phase 2: Differentiation (Months 3-5)
-Add features that competitors don't have:
-- Audio playback with sync
-- AI summaries
-- Multi-language support
-- Shortcuts integration
+**A2. SRT / WebVTT / timestamped-Markdown export.** Needs U3. Pairs directly with A1:
+drop in a video, get subtitles, entirely offline. Podcasters and YouTubers are an
+underserved segment and nothing offline serves them well.
 
-### Phase 3: Specialization (Months 6+)
-Advanced features for power users:
-- Speaker diarization
-- Action item extraction
-- Custom vocabulary
-- Templates
-- Apple Watch
+**A3. Foundation Models structured extraction.** The FM plumbing in
+`SummaryGenerator.swift` is proven for summary + title, so extending it is close to
+free: `@Generable` structs for action items, decisions, key points and participants;
+"rewrite as email / meeting minutes"; transcript cleanup (remove filler, fix
+punctuation). **Watch out:** there is no chunking today, so long transcripts will blow
+FM's context window — a map-reduce pass is the real work here.
 
-### Quick Wins for Marketing
-Features that are easy to implement but great for marketing:
-1. Home screen widget (high visibility)
-2. App icon alternatives (personalization)
-3. Export to popular note apps (workflow integration)
-4. Dark mode accent colors (polish)
+**A4. Live Activity / Dynamic Island + Control Center control + Action Button.** All
+greenfield (no widget or extension target exists). Turns "start a memo" into one press
+from anywhere, and makes recording state visible when the app is backgrounded.
 
-### Technical Debt Considerations
-Before adding major features, consider:
-1. Refactor audio processing pipeline for pause/resume
-2. Implement proper error handling and logging
-3. Add unit tests for critical components
-4. Performance optimization for large transcript collections
-5. Accessibility audit
+**A5. App Intents / Shortcuts / Siri.** "Take a memo", "Transcribe this file",
+"Summarize my last memo". Also exposes transcripts to Apple Intelligence and Spotlight
+actions. Listed in `feature_suggestions.md`; still zero implementation.
+
+**A6. Background recording.** `UIBackgroundModes` is absent from both plists, so
+recording dies the moment you leave the app — a dealbreaker for lectures and meetings,
+which is the exact use case the App Store copy sells. Plist + audio-session work,
+entangled with U1.
 
 ---
 
-## Market Differentiation Strategy
+## Tier B — depth for existing users
 
-### Compared to Otter.ai
-- **Advantage**: Fully on-device, privacy-first
-- **Missing**: Cloud collaboration, real-time transcription sharing
-- **Opportunity**: Position as privacy-focused alternative
+Mostly the roadmap's own Phase 2/3, re-ordered by what unblocks what, plus three items
+it does not cover.
 
-### Compared to Voice Memos + Transcription
-- **Advantage**: Dedicated transcription workflow, better models
-- **Missing**: Deep iOS integration
-- **Opportunity**: Shortcuts integration, Files app integration
-
-### Compared to Whisper apps
-- **Advantage**: Multiple model options, Pro features
-- **Missing**: Some may have cloud features
-- **Opportunity**: Best balance of privacy + features
-
-### Target User Segments
-1. **Students**: Lecture transcription, note-taking
-   - Priority: Multi-language, audio playback, organization
-2. **Professionals**: Meeting notes, interview transcription
-   - Priority: Speaker diarization, AI summaries, templates
-3. **Journalists**: Interview transcription, quotes
-   - Priority: Audio sync, timestamps, export options
-4. **Researchers**: Interview analysis, transcription
-   - Priority: Tags, search, custom vocabulary
-5. **Content Creators**: Podcast notes, script drafting
-   - Priority: Export formats, editing tools
+- **B1. Stored audio + synced playback** with transcript highlighting and speed control (U2 + U3).
+- **B2. Pause/resume** — roadmap-correct approach: orchestrator state tests *first*.
+- **B3. Editable transcripts** — `RecordingDetailView.swift:47` renders a read-only `Text`.
+- **B4. Tags, favorites, `#Predicate` search — and Spotlight indexing.** Search today is
+  an in-memory `contains` over every fetched row (`RecordingsViewModel.swift:19-41`).
+  `CSSearchableItem` indexing so transcripts surface in system search is in neither doc
+  and is a strong, cheap Pro hook.
+- **B5. iCloud sync** — roadmap's headline Pro differentiator. No CloudKit entitlement today.
+- **B6. Re-transcribe with a larger model** (U2) — turns the Pro model picker from a
+  setting into an actual workflow.
+- **B7. Richer export** — Markdown, PDF, batch, and auto-export to a Files/iCloud Drive
+  folder (the Obsidian/plain-text-notes crowd).
+- **B8. Accessibility pass + a "Live Captions" mode.** Zero accessibility modifiers
+  exist. Beyond fixing that: a large-text, hand-the-phone-over conversation mode is a
+  distinct product mode, a real market (hard-of-hearing users), and an App Store feature
+  story — an offline transcription app is unusually well-placed to serve it.
+- **B9. Localize the UI and the store listings.** No `.xcstrings`, no `.lproj`. An app
+  that transcribes 99 languages with an English-only interface. Localized DE/ES/FR/JA/PT
+  listings are the cheapest discovery lever available and compound with S1-S4.
 
 ---
 
-## Revenue Opportunities
+## Tier C — big bets
 
-### Current: One-time Pro Purchase
-- Simple, user-friendly
-- Limited revenue per user
-
-### Future Options
-
-1. **Subscription Model** (Most common for Pro apps)
-   - $2.99/month or $19.99/year
-   - Includes: iCloud sync, AI features, unlimited storage
-   - Pros: Recurring revenue, aligns with ongoing costs (AI APIs)
-   - Cons: User resistance to subscriptions
-
-2. **Freemium with Limits**
-   - Free: 10 recordings, tiny model only
-   - Pro: Unlimited, all models, advanced features
-   - Pros: Wider user base, easier acquisition
-   - Cons: Cannibalization of Pro sales
-
-3. **Feature Packs**
-   - Base Pro: $4.99 (current features)
-   - AI Pack: $2.99 (summaries, action items)
-   - Cloud Pack: $1.99 (iCloud sync, collaboration)
-   - Pros: Users pay for what they need
-   - Cons: Complexity, fragmentation
-
-4. **Team Plans**
-   - Individual: $4.99
-   - Team (5 users): $19.99/month
-   - Enterprise: Custom pricing
-   - Pros: B2B revenue potential
-   - Cons: Requires collaboration features
-
-### Recommended Approach
-Start with one-time Pro, add optional subscription tier:
-- Pro: $4.99 one-time (current features + Tier 1)
-- Pro Plus: $2.99/month (AI features, unlimited cloud storage)
-- Allows users to choose their level
+- **C1. Offline dictation keyboard extension.** The "replace iOS dictation, fully
+  offline" play from `topwhisper/PDR.md` §5.2. Nothing on the App Store does offline
+  Whisper dictation into arbitrary apps. **Risk:** keyboard extensions run under a hard
+  memory cap (~60 MB); `tiny-q5_1` is 31 MB, so it is plausible but tight — do a
+  memory-footprint spike before committing.
+- **C2. Speaker diarization.** Genuinely hard. A cheap approximation: pause-based turn
+  breaks using `PauseDetector.swift`, which is already written and unit-tested but never
+  instantiated in the app.
+- **C3. `large-v3-turbo`.** Blocked as the roadmap says — the vendored whisper.cpp is
+  pre-turbo (flat layout, `GGML_USE_CUBLAS`) and needs a bump to ≥ v1.7.1 plus a Metal
+  rebuild. Also unblocks C1 by way of better small-model options.
+- **C4. Mac app.** Build settings already claim `macosx`; `RealTimeWhisper` has a macOS
+  stub that prints a placeholder. A menu-bar dictation app with a global hotkey is the
+  `PDR.md` vision and the natural home for C1's engine.
+- **C5. Apple Watch capture** → hand off to the phone for transcription.
 
 ---
 
-## Technical Stack Additions
+## Sharpening the free/Pro split
 
-### New Frameworks Needed
-- **CloudKit**: iCloud sync
-- **WidgetKit**: Home screen widgets
-- **App Intents**: Shortcuts support
-- **WatchKit**: Apple Watch app
-- **PDFKit**: PDF generation
-- **Natural Language**: Text analysis
-- **EventKit**: Calendar/Reminders integration
-- **Core Location**: Location-based features
+Pro is currently "history + model picker". That is thin for a paid-to-paid upsell, and
+the free app is simultaneously too heavy (S0) and too weak to earn ratings.
 
-### Third-Party Dependencies
-- **Claude API**: AI summaries (or use local LLM)
-- **Notion API**: Notion export
-- **Evernote SDK**: Evernote export
+**Make free genuinely good** (drives ratings, word of mouth, and the upsell):
+S0-S4 language work, S7 share, S8 review prompt, A4 Live Activity, S5 custom vocabulary.
 
-### Storage Considerations
-- Current: Transcript text only (~1KB per minute)
-- With audio: ~1MB per minute (M4A compression)
-- With models: 75MB-1.5GB per model
-- iCloud strategy needed for large collections
+**Make Pro clearly worth it:** A1 file import, A2 subtitle export, B1 playback,
+B4 organization + Spotlight, B5 sync, A3 AI extraction beyond the basic summary,
+and eventually C1.
+
+Both fit the existing `PRO_VERSION` flag boundary, so no structural change to the
+two-SKU model.
 
 ---
 
-## Success Metrics
+## Suggested slate
 
-### User Engagement
-- Daily active users (DAU)
-- Recordings per user per week
-- Average recording length
-- Feature adoption rates
+| Release | Theme | Contents |
+|---|---|---|
+| **2.5** | *Multilingual, for real* | S0-S11 — one batch of small, independent wins |
+| **2.6** | *Capture you can trust* | U1 + orchestrator tests, A6 background, B2 pause/resume, U2 stored audio, B1 playback |
+| **2.7** | *From recorder to transcription tool* | U3 timestamps, A1 import, A2 SRT/VTT, A5 App Intents |
+| **3.0** | *Dictate anywhere* | C1 spike → keyboard, A4 surfaces, C4 Mac |
 
-### Quality Metrics
-- App Store rating (target: >4.5)
-- Crash rate (target: <1%)
-- Transcription accuracy (user-reported)
-
-### Business Metrics
-- Pro conversion rate (target: 5-10%)
-- Revenue per user
-- Customer lifetime value
-- Retention rate (30-day, 90-day)
-
-### Feature-Specific Metrics
-- iCloud sync adoption
-- AI summary usage
-- Export format popularity
-- Model preference distribution
+B9 localization should land alongside 2.5 (it is store-listing work more than code) and
+B8 accessibility alongside 2.6.
 
 ---
 
-## Next Steps
+## Verification
 
-1. **User Research**: Survey current users about priorities
-2. **Competitive Analysis**: Deep dive into competitors' features
-3. **Technical Spike**: Prototype pause/resume and iCloud sync
-4. **Roadmap Finalization**: Choose Tier 1 features to implement
-5. **Design Work**: UI/UX designs for new features
+Per `AGENTS.md` / `CLAUDE.md`, from `aimemo/` (the git root):
+
+```bash
+# Both targets must build — the PRO_VERSION flag is the only thing separating them
+xcodebuild -project aimemo.xcodeproj -scheme aimemo \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5' build
+xcodebuild -project aimemo.xcodeproj -scheme aimemo-pro \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5' build
+
+# Tests — pin OS=18.5, unpinned picks the newest installed runtime
+xcodebuild test -project aimemo.xcodeproj -scheme aimemo \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5'
+```
+
+Feature-specific checks:
+
+- **S0 (app size):** archive the free target and compare against
+  `build/aimemo-2.4.xcarchive`; confirm the three excluded `.bin` files are absent from
+  `Products/Applications/aimemo.app/Resources/models/` and that free-app transcription
+  still works (it must fall back to `base`). Also confirm Pro still ships all four.
+- **S1-S5 (language):** extend the existing multilingual integration test — the suite
+  already transcribes en/de/es/fr/it/ja fixtures in `aimemoTests/`. Add a `translate`
+  case asserting a non-English fixture yields English, and an `initial_prompt` case
+  asserting a seeded proper noun is spelled correctly.
+- **U1:** needs the `RealTimeWhisper` start→pause→resume→stop state tests the roadmap
+  already calls for. Measure peak memory and wall-clock on a 30-minute recording before
+  and after.
+- **On device, not simulator:** anything touching Metal (the simulator uses the CPU
+  fallback) and anything touching Foundation Models — `ROADMAP.md` flags that the FM
+  positive path has *never* run, since simulators report the model unavailable.
 
 ---
 
-*Last Updated: 2025-11-11*
-*Version: 1.0*
+*Revised 2026-09-11 against v2.4 (`44c8506`). Supersedes the 2025-11-11 v1.0.*
