@@ -1,400 +1,336 @@
+//
+//  RealTimeWhisper.swift
+//  aimemo
+//
+//  Presentation adapter over a LiveTranscriptionSession
+//
+
 import AVFoundation
 import SwiftData
-import Speech
+import SwiftUI
 
-
-//@MainActor
+/// Observable state for the recording screen, and the recording lifecycle.
+///
+/// Everything that used to make this class risky now lives elsewhere: audio
+/// capture in `MicrophoneCapture`, windowing and stitching in
+/// `StreamingTranscriber`, decode in `WhisperContext`. What is left is a state
+/// machine, some published properties, and the save.
+///
+/// `@MainActor`, so every `@Observable` mutation is on one thread by
+/// construction rather than by convention — the previous version wrote
+/// `transcribedText` from the cooperative pool while SwiftUI read it on main.
+@MainActor
 @Observable
-class RealTimeWhisper {
-    var transcribedText = ""
-    var canTranscribe = false
-    var canStop = false
-    var audioLevels: [Float] = []
-    /// Elapsed recording time in seconds. Counts up while recording, frozen at
-    /// the final duration after stop. Drives the timer label on the recording screen.
-    var elapsedTime: TimeInterval = 0
-    @ObservationIgnored private var timerTask: Task<Void, Never>?
-    var currentModel: WhisperModel = .selected
-    var currentEngine: TranscriptionEngine = .selected
-    /// ISO 639-1 code whisper detected for the recording in progress, surfaced
-    /// on the recording screen. Nil until the first transcription pass lands,
-    /// and while a language is pinned rather than auto-detected.
-    var detectedLanguageCode: String?
+final class RealTimeWhisper {
 
-    /// Options captured when recording started, so changing Settings mid-take
-    /// cannot switch language or prompt part-way through a recording.
-    @ObservationIgnored private var activeOptions: TranscriptionOptions = .current
+  enum State: Equatable, Sendable {
+    case idle
+    case recording
+    case paused
+    /// Flushing the final window. A second tap must not start a new recording
+    /// on top of the old one.
+    case stopping
+  }
 
-    // Apple Speech recognizer (used when engine is .appleSpeech)
-    private var appleSpeechRecognizer: AppleSpeechRecognizer?
+  // MARK: - Observable state
 
-    private let maxAudioLevels = 100
-    private let audioEngine = AVAudioEngine()
-    #if os(iOS)
-    private let audioSession = AVAudioSession.sharedInstance()
+  private(set) var state: State = .idle
+  /// True while a recording is in progress; drives the record button.
+  var canStop: Bool { state == .recording || state == .paused }
+  /// True while the final flush is running.
+  var isBusy: Bool { state == .stopping }
+
+  /// Committed text. This is what gets saved, copied and shared.
+  var transcribedText = ""
+  /// The window still being decoded, rendered dimmed.
+  private(set) var provisionalText = ""
+  private(set) var provisionalConfidence: Float = 0
+  /// Committed plus provisional, for display.
+  var displayText: String {
+    provisionalText.isEmpty ? transcribedText
+      : LiveTranscript.join(transcribedText, provisionalText)
+  }
+
+  var audioLevels: [Float] = []
+  var elapsedTime: TimeInterval = 0
+  private(set) var detectedLanguageCode: String?
+  private(set) var errorMessage: String?
+
+  /// "A model is loaded." Nothing more — the old flag doubled as a
+  /// transcription mutex and could wedge itself false forever.
+  private(set) var canTranscribe = false
+
+  var currentModel: WhisperModel = .selected
+  var currentEngine: TranscriptionEngine = .selected
+  var modelContext: ModelContext?
+
+  // MARK: - Collaborators
+
+  private let loader: WhisperModelLoader
+  private let makeSession: (TranscriptionEngine, TranscriptionOptions, WhisperContext?)
+    -> LiveTranscriptionSession
+  private var whisperContext: WhisperContext?
+
+  private var session: LiveTranscriptionSession?
+  private var consumer: Task<Void, Never>?
+
+  /// Options in force for the current take, snapshotted at start so changing
+  /// Settings mid-recording cannot switch language part-way through.
+  private var activeOptions: TranscriptionOptions = .current
+
+  private let maxAudioLevels = 100
+  private var recordingStartTime: Date?
+  /// Elapsed time accumulated before the current run, so pause is honest.
+  private var elapsedBase: TimeInterval = 0
+  private var segmentStart: Date?
+  private var timerTask: Task<Void, Never>?
+
+  // MARK: - Init
+
+  init(
+    loader: WhisperModelLoader = WhisperModelLoader(),
+    makeSession: (
+      (TranscriptionEngine, TranscriptionOptions, WhisperContext?) -> LiveTranscriptionSession
+    )? = nil
+  ) {
+    self.loader = loader
+    self.makeSession = makeSession ?? { engine, options, context in
+      switch engine {
+      case .whisper:
+        // A missing context is prevented by the guard in start().
+        return WhisperTranscriptionSession(context: context!, options: options)
+      case .appleSpeech:
+        return AppleSpeechTranscriptionSession(options: options)
+      }
+    }
+
+    let selected = WhisperModel.selected
+    do {
+      whisperContext = try loader.makeContext(for: selected)
+      currentModel = selected
+      canTranscribe = true
+    } catch {
+      print("Error loading model: \(error.localizedDescription)")
+    }
+  }
+
+  // MARK: - Model
+
+  func loadModel(_ model: WhisperModel) async throws {
+    // Swapping the context under a live decode loop would free it mid-flight.
+    guard state == .idle else { throw ModelError.busy }
+    whisperContext = try loader.makeContext(for: model)
+    currentModel = model
+    canTranscribe = true
+  }
+
+  enum ModelError: LocalizedError {
+    case busy
+    case notLoaded
+
+    var errorDescription: String? {
+      switch self {
+      case .busy: return "Stop the recording before changing model."
+      case .notLoaded: return "No transcription model is loaded."
+      }
+    }
+  }
+
+  // MARK: - Lifecycle
+
+  func start() async {
+    guard state == .idle else { return }
+
+    if currentEngine == .whisper && whisperContext == nil {
+      errorMessage = ModelError.notLoaded.errorDescription
+      return
+    }
+
+    // Everything per-take is reset in one place, so adding a field cannot
+    // quietly leave last take's value on screen.
+    transcribedText = ""
+    provisionalText = ""
+    provisionalConfidence = 0
+    detectedLanguageCode = nil
+    errorMessage = nil
+    audioLevels = []
+    activeOptions = .current
+    elapsedBase = 0
+    recordingStartTime = Date()
+    segmentStart = Date()
+
+    let session = makeSession(currentEngine, activeOptions, whisperContext)
+    self.session = session
+    consume(session)
+
+    state = .recording
+    startTimer()
+
+    do {
+      try await session.start()
+    } catch {
+      errorMessage = errorMessage ?? error.localizedDescription
+      await teardown()
+      state = .idle
+    }
+  }
+
+  func pause() async {
+    guard state == .recording else { return }
+    state = .paused
+    stopTimer()
+    elapsedBase += Date().timeIntervalSince(segmentStart ?? Date())
+    await session?.pause()
+  }
+
+  func resume() async {
+    guard state == .paused, let session else { return }
+    do {
+      try await session.resume()
+      segmentStart = Date()
+      state = .recording
+      startTimer()
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  /// Flushes the final window, then saves. `transcribedText` is complete once
+  /// this returns — the previous version read it before the last decode landed,
+  /// so the closing words were on screen but missing from the saved recording.
+  func stopRecord() async {
+    guard state == .recording || state == .paused else { return }
+    let wasRecording = state == .recording
+    state = .stopping
+    stopTimer()
+    // Paused time is already folded into elapsedBase; adding it twice would
+    // inflate the saved duration.
+    if wasRecording, let segmentStart {
+      elapsedBase += Date().timeIntervalSince(segmentStart)
+    }
+    elapsedTime = elapsedBase
+
+    if let session {
+      transcribedText = await session.finish()
+    }
+    await teardown()
+
+    provisionalText = ""
+    provisionalConfidence = 0
+    audioLevels = []
+    state = .idle
+
+    #if PRO_VERSION
+    saveRecording()
     #endif
-    private var audioBuffer: AVAudioPCMBuffer?
-    private var lastBuffer: AVAudioPCMBuffer?
-    private var audioPlayer: AVAudioPlayer?
+  }
 
-    private let outputFormat: AVAudioFormat
-    private var formatConverter: AVAudioConverter?
+  func cancel() async {
+    guard state != .idle else { return }
+    state = .stopping
+    stopTimer()
+    await session?.cancel()
+    await teardown()
+    state = .idle
+  }
 
-    private var dataFloats = [Float]()
+  private func teardown() async {
+    consumer?.cancel()
+    consumer = nil
+    session = nil
+  }
 
+  // MARK: - Updates
 
-    private var whisperContext: WhisperContext?
-
-    // Recording metadata for auto-save
-    private var recordingStartTime: Date?
-    var modelContext: ModelContext?
-    
-    init() {
-        // Initialize output format
-        /// Output format required by Whisper. This is mono 16khz Float32 PCM formatted audio.
-        self.outputFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: 16000,
-            channels: 1,
-            interleaved: true
-        )!  // We know this format works, so we can assert here.
-
-        // Load the selected model
-        do {
-            let selectedModel = WhisperModel.selected
-            if let modelUrl = findModelURL(for: selectedModel) {
-                self.whisperContext = try WhisperContext(path: modelUrl)
-                self.currentModel = selectedModel
-                print("Loaded model \(selectedModel.displayName) (\(modelUrl.lastPathComponent))\n")
-            } else {
-                print("Could not locate \(selectedModel.displayName) model")
-            }
-
-            self.canTranscribe = true
-        } catch {
-            print("Error loading model: \(error.localizedDescription)")
+  private func consume(_ session: LiveTranscriptionSession) {
+    consumer = Task { [weak self] in
+      for await update in session.updates {
+        guard let self else { return }
+        switch update {
+        case .transcript(let transcript):
+          self.transcribedText = transcript.committed
+          self.provisionalText = transcript.provisional
+          self.provisionalConfidence = transcript.provisionalConfidence
+        case .level(let level):
+          self.audioLevels.append(level)
+          if self.audioLevels.count > self.maxAudioLevels {
+            self.audioLevels.removeFirst()
+          }
+        case .detectedLanguage(let code):
+          // Only meaningful when whisper was left to detect; a pinned language
+          // would just echo the user's own choice back at them.
+          if self.activeOptions.language == .automatic {
+            self.detectedLanguageCode = code
+          }
+        case .failed(let message):
+          self.errorMessage = message
         }
+      }
+    }
+  }
+
+  // MARK: - Elapsed timer
+
+  private func startTimer() {
+    timerTask?.cancel()
+    timerTask = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .milliseconds(200))
+        guard let self, self.state == .recording, let start = self.segmentStart else { break }
+        self.elapsedTime = self.elapsedBase + Date().timeIntervalSince(start)
+      }
+    }
+  }
+
+  private func stopTimer() {
+    timerTask?.cancel()
+    timerTask = nil
+  }
+
+  /// Elapsed time formatted mm:ss for the recording screen.
+  var formattedElapsedTime: String {
+    let total = Int(elapsedTime)
+    return String(format: "%02d:%02d", total / 60, total % 60)
+  }
+
+  // MARK: - Persistence
+
+  private func saveRecording() {
+    guard let modelContext,
+          !transcribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          let startTime = recordingStartTime else {
+      return
     }
 
-    // MARK: - Model Management
+    let recording = Recording(
+      timestamp: startTime,
+      // Measured time, not wall clock at save: the flush can take seconds, and
+      // paused stretches should not count.
+      duration: elapsedTime,
+      transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
+    )
 
-    /// Find the URL for a given model in the bundle
-    private func findModelURL(for model: WhisperModel) -> URL? {
-        if let url = bundledModelURL(for: model) {
-            return url
-        }
-        // Belt and braces: the free target ships only `base`, so never leave the
-        // app with no context at all if an unexpected selection slips through.
-        guard model != .base else { return nil }
-        print("Model \(model.resourceName) not in bundle; falling back to base")
-        return bundledModelURL(for: .base)
+    modelContext.insert(recording)
+
+    do {
+      try modelContext.save()
+      autoTitle(recording, in: modelContext)
+    } catch {
+      print("Error saving recording: \(error.localizedDescription)")
     }
+  }
 
-    private func bundledModelURL(for model: WhisperModel) -> URL? {
-        let resourceName = model.resourceName
+  /// Fills an empty title with an on-device AI suggestion (iOS 26+).
+  /// Fire-and-forget: never blocks saving, never overwrites a user title.
+  private func autoTitle(_ recording: Recording, in modelContext: ModelContext) {
+    let generator = SummaryGenerator()
+    guard generator.isAvailable, recording.title == nil else { return }
 
-        // Try multiple locations to find the model
-        if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin", subdirectory: "models") {
-            return url
-        } else if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin", subdirectory: "Resources/models") {
-            return url
-        } else if let url = Bundle.main.url(forResource: resourceName, withExtension: "bin") {
-            return url
-        }
-
-        return nil
+    Task { @MainActor in
+      guard let title = await generator.generateTitle(for: recording.transcriptText),
+            recording.title == nil else { return }
+      recording.title = title
+      try? modelContext.save()
     }
-
-    /// Load a different Whisper model
-    func loadModel(_ model: WhisperModel) async throws {
-        guard let modelUrl = findModelURL(for: model) else {
-            throw NSError(
-                domain: "RealTimeWhisper",
-                code: 404,
-                userInfo: [NSLocalizedDescriptionKey: "Model file '\(model.fileName)' not found in bundle"]
-            )
-        }
-
-        // Create new context with the selected model
-        let newContext = try WhisperContext(path: modelUrl)
-
-        // Update the context and current model
-        await MainActor.run {
-            self.whisperContext = newContext
-            self.currentModel = model
-            print("Switched to model \(model.displayName) (\(modelUrl.lastPathComponent))\n")
-        }
-    }
-    
-    func startRealTimeProcessingAndPlayback() throws {
-        // Record start time for auto-save
-        recordingStartTime = Date()
-        dataFloats = []  // Clear previous recording data
-        activeOptions = .current
-        detectedLanguageCode = nil
-        startTimer()
-
-        // Check which engine to use
-        if currentEngine == .appleSpeech {
-            // Use Apple Speech Recognition
-            if appleSpeechRecognizer == nil {
-                appleSpeechRecognizer = AppleSpeechRecognizer()
-            } else {
-                // Settings may have changed the language since the last take.
-                appleSpeechRecognizer?.refreshLanguage()
-            }
-
-            // Request authorization if needed
-            if let recognizer = appleSpeechRecognizer,
-               recognizer.authorizationStatus != .authorized {
-                Task {
-                    let authorized = await recognizer.requestAuthorization()
-                    if authorized {
-                        do {
-                            try recognizer.startRecording()
-                        } catch {
-                            print("Error starting Apple Speech recording: \(error.localizedDescription)")
-                            await MainActor.run {
-                                self.transcribedText = "Error starting recording: \(error.localizedDescription)"
-                            }
-                        }
-                    } else {
-                        await MainActor.run {
-                            self.transcribedText = "Speech recognition permission denied. Please enable in Settings."
-                        }
-                    }
-                }
-            } else {
-                // Already authorized, start recording directly
-                do {
-                    try appleSpeechRecognizer?.startRecording()
-                    print("Apple Speech recording started successfully")
-                } catch {
-                    print("Error starting Apple Speech recording: \(error.localizedDescription)")
-                    transcribedText = "Error starting recording: \(error.localizedDescription)"
-                }
-            }
-
-            // Sync transcription and audio levels
-            Task { @MainActor in
-                while canStop {
-                    if let recognizer = appleSpeechRecognizer {
-                        transcribedText = recognizer.transcribedText
-                        audioLevels = recognizer.audioLevels
-                    }
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
-                }
-            }
-
-            return
-        }
-
-        // Otherwise use Whisper (existing code)
-        #if os(iOS)
-        try audioSession.setCategory(.playAndRecord, mode: .default)
-
-        // 请求录音权限
-
-        AVAudioApplication.requestRecordPermission { granted in
-            if granted {
-                // Permission is granted
-                // 用户已授予录音权限，继续启动实时处理和播放
-                do {
-                    try self.audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-                    
-                    let inputNode = self.audioEngine.inputNode
-                    
-                    let format = inputNode.inputFormat(forBus: 0)
-                    
-                    self.formatConverter = AVAudioConverter(from: format, to: self.outputFormat)!
-                    
-                    inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, time in
-                        DispatchQueue.main.async {
-                            do {
-                                // Calculate and store amplitude for visualization
-                                let amplitude = self.calculateAmplitude(from: buffer)
-                                self.audioLevels.append(amplitude)
-                                if self.audioLevels.count > self.maxAudioLevels {
-                                    self.audioLevels.removeFirst()
-                                }
-
-                                let duration = Double(buffer.frameCapacity) / buffer.format.sampleRate
-                                let outputBufferCapacity = AVAudioFrameCount(self.outputFormat.sampleRate * duration)
-                                let outputBuffer = AVAudioPCMBuffer(
-                                    pcmFormat: self.outputFormat,
-                                    frameCapacity: outputBufferCapacity
-                                )!
-                                var error: NSError? = nil
-                                guard let formatConverter = self.formatConverter else {
-                                    return
-                                }
-                                let status = self.formatConverter!.convert(
-                                    to: outputBuffer,
-                                    error: &error,
-                                    withInputFrom: { inNumPackets, outStatus in
-                                        outStatus.pointee = AVAudioConverterInputStatus.haveData
-                                        return buffer
-                                    }
-                                )
-                                switch status {
-                                    case .error:
-                                        if let conversionError = error {
-                                          print("Error converting audio file: \(conversionError)")
-                                        }
-                                        return
-                                    default: break
-                                }
-                                self.formatConverter?.reset()
-
-                                let oneFloat = try self.decodePCMBuffer(outputBuffer)
-                                self.dataFloats += oneFloat
-                                let tempDateFloats = self.dataFloats
-                                Task {
-                                    await self.transcribeData(tempDateFloats)
-                                }
-                            } catch {
-                                print("Write error: \(error.localizedDescription)")
-                            }
-                        }
-                    }
-                    
-                    // 启动音频引擎
-                    
-                    try self.audioEngine.start()
-                    
-                    print("Real-time audio processing and playback started.")
-                } catch {
-                    print("Error starting real-time processing and playback: \(error.localizedDescription)")
-                }
-            } else {
-                // 用户未授予录音权限
-                // User has not granted permission
-                print("User denied record permission.")
-            }
-        }
-        #else
-        // macOS fallback - show message that audio recording is iOS-only
-        print("Audio recording is only available on iOS devices")
-        transcribedText = "Audio recording is only available on iOS devices. This is a demo transcription text for macOS."
-        #endif
-    }
-    
-    func decodePCMBuffer(_ buffer: AVAudioPCMBuffer) throws -> [Float] {
-        try AudioSamples.floats(from: buffer)
-    }
-
-    func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
-        AudioSamples.meterLevel(from: buffer)
-    }
-    
-    // MARK: - Elapsed timer
-
-    private func startTimer() {
-        elapsedTime = 0
-        timerTask?.cancel()
-        timerTask = Task { @MainActor [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
-                guard let self, let start = self.recordingStartTime, self.canStop else { break }
-                self.elapsedTime = Date().timeIntervalSince(start)
-            }
-        }
-    }
-
-    private func stopTimer() {
-        timerTask?.cancel()
-        timerTask = nil
-        if let start = recordingStartTime {
-            elapsedTime = Date().timeIntervalSince(start)
-        }
-    }
-
-    /// Elapsed time formatted mm:ss for the recording screen.
-    var formattedElapsedTime: String {
-        let total = Int(elapsedTime)
-        return String(format: "%02d:%02d", total / 60, total % 60)
-    }
-
-    func stopRecord() {
-        stopTimer()
-
-        // Stop based on current engine
-        if currentEngine == .appleSpeech {
-            appleSpeechRecognizer?.stopRecording()
-            audioLevels = []
-        } else {
-            // Whisper engine
-            audioEngine.stop()
-            audioEngine.inputNode.removeTap(onBus: 0)
-            audioLevels = []
-        }
-
-        // Auto-save recording if there's transcribed text (Pro only)
-        #if PRO_VERSION
-        saveRecording()
-        #endif
-    }
-
-    private func saveRecording() {
-        // Only save if we have a model context, text, and start time
-        guard let modelContext = modelContext,
-              !transcribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let startTime = recordingStartTime else {
-            return
-        }
-
-        // Calculate duration
-        let duration = Date().timeIntervalSince(startTime)
-
-        // Create and save recording
-        let recording = Recording(
-            timestamp: startTime,
-            duration: duration,
-            transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
-
-        modelContext.insert(recording)
-
-        do {
-            try modelContext.save()
-            print("Recording auto-saved: \(recording.displayTitle)")
-            autoTitle(recording, in: modelContext)
-        } catch {
-            print("Error saving recording: \(error.localizedDescription)")
-        }
-    }
-
-    /// Fills an empty title with an on-device AI suggestion (iOS 26+).
-    /// Fire-and-forget: never blocks saving, never overwrites a user title.
-    private func autoTitle(_ recording: Recording, in modelContext: ModelContext) {
-        let generator = SummaryGenerator()
-        guard generator.isAvailable, recording.title == nil else { return }
-
-        Task { @MainActor in
-            guard let title = await generator.generateTitle(for: recording.transcriptText),
-                  recording.title == nil else { return }
-            recording.title = title
-            try? modelContext.save()
-        }
-    }
-    
-    private func transcribeData(_ data: [Float]) async {
-        if (!canTranscribe) {
-            return
-        }
-        
-        canTranscribe = false
-        guard let w = whisperContext else {
-            return
-        }
-        await w.fullTranscribe(samples: data, options: activeOptions)
-        let text = await w.getTranscription()
-        transcribedText = "\(text) "
-        // Only meaningful when whisper was left to detect; a pinned language
-        // would just echo the user's own choice back at them.
-        if activeOptions.language == .automatic {
-            detectedLanguageCode = await w.detectedLanguage()
-        }
-        canTranscribe = true
-    }
+  }
 }

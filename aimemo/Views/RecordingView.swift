@@ -21,7 +21,7 @@ struct RecordingView: View {
 
   private var showActivity: Bool {
     audioProcessor.canStop
-      || !audioProcessor.transcribedText.isEmpty
+      || !audioProcessor.displayText.isEmpty
       || audioProcessor.elapsedTime > 0
   }
 
@@ -126,9 +126,13 @@ struct RecordingView: View {
   private var transcriptCard: some View {
     VStack(spacing: 16) {
       ScrollView {
-        Text(verbatim: audioProcessor.transcribedText)
+        (Text(verbatim: audioProcessor.transcribedText)
+          .foregroundColor(Theme.textPrimary)
+         + Text(audioProcessor.provisionalText.isEmpty ? "" : " ")
+         + Text(verbatim: audioProcessor.provisionalText)
+          // Still being decoded; dimmed until the window commits.
+          .foregroundColor(Theme.textSecondary))
           .font(.system(size: 19))
-          .foregroundStyle(Theme.textPrimary)
           .lineSpacing(4)
           .frame(maxWidth: .infinity, alignment: .leading)
           .textSelection(.enabled)
@@ -138,15 +142,15 @@ struct RecordingView: View {
       HStack(spacing: 12) {
         ActionButton(title: "Copy", systemName: "doc.on.doc", tint: Theme.accent) {
           #if os(iOS)
-          UIPasteboard.general.setValue(audioProcessor.transcribedText,
+          UIPasteboard.general.setValue(audioProcessor.displayText,
                                         forPasteboardType: UTType.plainText.identifier)
           #elseif os(macOS)
-          NSPasteboard.general.setString(audioProcessor.transcribedText, forType: .string)
+          NSPasteboard.general.setString(audioProcessor.displayText, forType: .string)
           #endif
         }
         // Sharing previously required saving first, which the free app never
         // does - so a free user could only ever copy-paste out of the app.
-        ShareLink(item: audioProcessor.transcribedText) {
+        ShareLink(item: audioProcessor.displayText) {
           HStack(spacing: 8) {
             Image(systemName: "square.and.arrow.up")
             Text("Share")
@@ -174,19 +178,12 @@ struct RecordingView: View {
         set: { _ in }
       ),
       onStart: {
-        Task {
-          audioProcessor.canStop = true
-          do {
-            try audioProcessor.startRealTimeProcessingAndPlayback()
-          } catch {
-            print("Error starting real-time processing and playback: \(error.localizedDescription)")
-          }
-        }
+        Task { await audioProcessor.start() }
       },
       onStop: {
         Task {
-          audioProcessor.stopRecord()
-          audioProcessor.canStop = false
+          // Awaits the final flush, so the transcript read below is complete.
+          await audioProcessor.stopRecord()
           // Count only takes that actually produced text - a recording that
           // transcribed nothing is not evidence the app was useful.
           let transcript = audioProcessor.transcribedText
