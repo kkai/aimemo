@@ -285,4 +285,39 @@ struct StreamingTranscriberTests {
     await core.cancel()
     #expect(await fake.abortWasRequested)
   }
+
+  // MARK: - Prompt suppression
+
+  @Test func anEmptyPromptedDecodeIsRetriedWithoutThePrompt() async {
+    // whisper can emit nothing when the prompt already reads like the audio.
+    // Losing a window of speech is worse than losing its context.
+    let fake = FakeWindowTranscriber(texts: ["one.", "two.", "three."],
+                                     emptyWhenPrompted: true)
+    let core = makeCore(fake)
+    await core.start()
+    feed(core, cycle + cycle)
+    let final = await core.finish()
+
+    // Window 1 has no prompt and succeeds. Window 2 is prompted, comes back
+    // empty, and is retried bare.
+    let prompts = await fake.prompts
+    #expect(prompts.count == 3, "expected a retry, got calls: \(prompts)")
+    #expect(prompts[0] == nil)
+    #expect(prompts[1] != nil)
+    #expect(prompts[2] == nil, "the retry must drop the prompt")
+    #expect(final.contains("one."))
+    #expect(!final.isEmpty)
+  }
+
+  @Test func aGenuinelySilentWindowIsNotRetriedForever() async {
+    // No prompt on the first window, so an empty result there must not loop.
+    let fake = FakeWindowTranscriber(texts: [""], emptyWhenPrompted: false)
+    let core = makeCore(fake)
+    await core.start()
+    feed(core, cycle)
+    let final = await core.finish()
+    #expect(await fake.callCount == 1)
+    #expect(final.isEmpty)
+  }
 }
+

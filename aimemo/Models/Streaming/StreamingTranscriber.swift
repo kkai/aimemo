@@ -89,12 +89,27 @@ actor StreamingTranscriber {
 
   private func decodeAndCommit(_ closed: TranscriptionWindow.Closed) async {
     do {
-      let result = try await transcriber.transcribe(
+      let prompt = transcript.promptTail()
+      var result = try await transcriber.transcribe(
         window: closed.samples,
-        prompt: transcript.promptTail(),
+        prompt: prompt,
         options: options,
         isPreview: false
       )
+
+      // A seeded prompt can suppress the decode entirely: whisper may emit EOT
+      // immediately when the prompt already reads like the audio it is given.
+      // Observed with repeated phrasing. Losing a window of speech is far worse
+      // than losing its context, so retry once unprompted.
+      if result.text.isEmpty, prompt != nil {
+        result = try await transcriber.transcribe(
+          window: closed.samples,
+          prompt: nil,
+          options: options,
+          isPreview: false
+        )
+      }
+
       transcript.commit(result.text)
 
       if let language = result.detectedLanguageCode, !reportedLanguage {

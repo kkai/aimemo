@@ -25,6 +25,9 @@ actor FakeWindowTranscriber: WindowTranscribing {
   private let failingIndices: Set<Int>
   /// Artificial decode latency, to let backlog build up.
   private let delay: Duration?
+  /// Reproduces whisper emitting nothing when a prompt is supplied, which it
+  /// does when the prompt already reads like the audio.
+  private let emptyWhenPrompted: Bool
 
   private nonisolated let abortBox = AbortBox()
 
@@ -38,11 +41,13 @@ actor FakeWindowTranscriber: WindowTranscribing {
   init(texts: [String] = [],
        language: String? = nil,
        failingIndices: Set<Int> = [],
-       delay: Duration? = nil) {
+       delay: Duration? = nil,
+       emptyWhenPrompted: Bool = false) {
     self.texts = texts
     self.language = language
     self.failingIndices = failingIndices
     self.delay = delay
+    self.emptyWhenPrompted = emptyWhenPrompted
   }
 
   var abortWasRequested: Bool { abortBox.wasRequested }
@@ -63,6 +68,10 @@ actor FakeWindowTranscriber: WindowTranscribing {
 
     if failingIndices.contains(index) {
       throw FakeError.scripted
+    }
+
+    if emptyWhenPrompted, prompt != nil {
+      return TranscribedWindow(segments: [], detectedLanguageCode: language)
     }
 
     let text = index < texts.count ? texts[index] : "window\(index)"
