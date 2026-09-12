@@ -15,12 +15,16 @@ actor FakeWindowTranscriber: WindowTranscribing {
     let sampleCount: Int
     let prompt: String?
     let isPreview: Bool
+    /// The language code actually sent to the engine.
+    let language: String
   }
 
   private(set) var requests: [Request] = []
   private var nextIndex = 0
   private let texts: [String]
   private let language: String?
+  /// Per-call detected language, overriding `language` when present.
+  private let languages: [String?]
   /// Throw on these call indices (0-based).
   private let failingIndices: Set<Int>
   /// Artificial decode latency, to let backlog build up.
@@ -42,9 +46,11 @@ actor FakeWindowTranscriber: WindowTranscribing {
        language: String? = nil,
        failingIndices: Set<Int> = [],
        delay: Duration? = nil,
-       emptyWhenPrompted: Bool = false) {
+       emptyWhenPrompted: Bool = false,
+       languages: [String?] = []) {
     self.texts = texts
     self.language = language
+    self.languages = languages
     self.failingIndices = failingIndices
     self.delay = delay
     self.emptyWhenPrompted = emptyWhenPrompted
@@ -62,7 +68,8 @@ actor FakeWindowTranscriber: WindowTranscribing {
   ) async throws -> TranscribedWindow {
     let index = nextIndex
     nextIndex += 1
-    requests.append(Request(sampleCount: window.count, prompt: prompt, isPreview: isPreview))
+    requests.append(Request(sampleCount: window.count, prompt: prompt,
+                            isPreview: isPreview, language: options.language.code))
 
     if let delay { try? await Task.sleep(for: delay) }
 
@@ -75,9 +82,10 @@ actor FakeWindowTranscriber: WindowTranscribing {
     }
 
     let text = index < texts.count ? texts[index] : "window\(index)"
+    let detected = index < languages.count ? languages[index] : language
     return TranscribedWindow(
       segments: [.init(text: text, start: 0, end: 1, confidence: 0.9)],
-      detectedLanguageCode: language
+      detectedLanguageCode: detected
     )
   }
 

@@ -319,5 +319,48 @@ struct StreamingTranscriberTests {
     #expect(await fake.callCount == 1)
     #expect(final.isEmpty)
   }
+
+  @Test func languageIsPinnedAfterTheFirstDetection() async {
+    // Re-detecting per window is unreliable on short audio, and a carried
+    // prompt can steer detection - observed as German audio coming back in
+    // English. A recording is treated as being in one language.
+    let fake = FakeWindowTranscriber(texts: ["eins.", "zwei.", "drei."],
+                                     languages: ["de", "de", "de"])
+    var options = TranscriptionOptions.default
+    options.language = .automatic
+    let core = makeCore(fake, options: options)
+    await core.start()
+    feed(core, cycle + cycle + cycle)
+    _ = await core.finish()
+
+    let languages = await fake.requests.map(\.language)
+    #expect(languages.first == "auto", "the first window must still auto-detect")
+    #expect(languages.dropFirst().allSatisfy { $0 == "de" },
+            "later windows should be pinned, got \(languages)")
+  }
+
+  @Test func anExplicitLanguageIsNeverOverridden() async {
+    let fake = FakeWindowTranscriber(texts: ["a", "b"], languages: [nil, nil])
+    var options = TranscriptionOptions.default
+    options.language = .specific("fr")
+    let core = makeCore(fake, options: options)
+    await core.start()
+    feed(core, cycle + cycle)
+    _ = await core.finish()
+
+    let languages = await fake.requests.map(\.language)
+    #expect(languages.allSatisfy { $0 == "fr" }, "got \(languages)")
+  }
+
+  @Test func aStableLanguageNeedsNoRetries() async {
+    let fake = FakeWindowTranscriber(texts: ["eins.", "zwei.", "drei."],
+                                     languages: ["de", "de", "de"])
+    let core = makeCore(fake)
+    await core.start()
+    feed(core, cycle + cycle + cycle)
+    let final = await core.finish()
+    #expect(await fake.callCount == 3, "no retry should have been needed")
+    #expect(final == "eins. zwei. drei.")
+  }
 }
 

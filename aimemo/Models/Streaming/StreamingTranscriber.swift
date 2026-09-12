@@ -37,12 +37,16 @@ actor StreamingTranscriber {
   private var pump: Task<Void, Never>?
   private var isCancelled = false
   private var reportedLanguage = false
+  /// Options actually sent to the engine. Once a language has been detected it
+  /// is pinned here for the rest of the recording.
+  private var effectiveOptions: TranscriptionOptions
 
   init(transcriber: WindowTranscribing,
        options: TranscriptionOptions,
        policy: TranscriptionWindow.Policy = .default) {
     self.transcriber = transcriber
     self.options = options
+    self.effectiveOptions = options
     self.window = TranscriptionWindow(policy: policy)
 
     var sampleSink: AsyncStream<[Float]>.Continuation!
@@ -93,15 +97,16 @@ actor StreamingTranscriber {
       var result = try await transcriber.transcribe(
         window: closed.samples,
         prompt: prompt,
-        options: options,
+        options: effectiveOptions,
         isPreview: false
       )
 
-      // A seeded prompt can suppress the decode entirely: whisper may emit EOT
-      // immediately when the prompt already reads like the audio it is given.
-      // Observed with repeated phrasing. Losing a window of speech is far worse
-      // than losing its context, so retry once unprompted.
-      if result.text.isEmpty, prompt != nil {
+      // A prompt can silence a window outright, observed against the real
+      // model. One extra decode is a fair price to recover it.
+      //
+      //  - Suppression: whisper emits EOT immediately when the prompt already
+      //    reads like the audio, and the window decodes to nothing at all.
+      if prompt != nil, result.text.isEmpty {
         result = try await transcriber.transcribe(
           window: closed.samples,
           prompt: nil,
@@ -115,6 +120,13 @@ actor StreamingTranscriber {
       if let language = result.detectedLanguageCode, !reportedLanguage {
         reportedLanguage = true
         updateContinuation.yield(.detectedLanguage(language))
+
+        // Pin it for the rest of the recording. Re-detecting per window is
+        // unreliable on short audio and lets the language flap mid-transcript;
+        // worse, a prompt carried from an earlier window can steer detection,
+        // which showed up as German audio being returned in English.
+        // A recording is treated as being in one language.
+        effectiveOptions.language = .specific(language)
       }
     } catch {
       // One bad window must not wedge the pipeline: the window is already

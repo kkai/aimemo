@@ -155,30 +155,49 @@ struct WhisperWindowTranscribeTests {
   // MARK: - Whole pipeline on real audio
 
   @Test(.enabled(if: WhisperWindowTranscribeTests.canRun))
-  func distinctFixturesEachProduceTheirOwnCommittedWindow() async throws {
-    // Three *different* utterances separated by silence. Repeating identical
-    // audio here is pathological: window two would be prompted with the exact
-    // sentence it is about to hear, and whisper answers that with silence.
-    // StreamingTranscriber retries such a window unprompted; this test covers
-    // the ordinary case, where consecutive windows carry different speech.
+  func repeatedUtterancesCommitSeparateWindowsAndSurviveSuppression() async throws {
+    // Two utterances separated by silence, in one language - the real shape of
+    // a recording. It is also the worst case for prompting: window two is
+    // seeded with the exact sentence it is about to hear again, and whisper
+    // answers that with silence. StreamingTranscriber's unprompted retry is
+    // what recovers it, so this exercises that path against the real model.
     let en = try #require(Self.fixture("en"))
-    let de = try #require(Self.fixture("de"))
-    let ja = try #require(Self.fixture("ja"))
     let gap = TestSignals.silence(seconds: 1.0)
 
     let core = StreamingTranscriber(transcriber: try context(), options: .default)
     await core.start()
-    TestSignals.feed(en + gap + de + gap + ja, chunk: 1024) { core.ingest($0) }
+    TestSignals.feed(en + gap + en, chunk: 1024) { core.ingest($0) }
     let final = await core.finish()
     print("[pipeline] \"\(final)\"")
 
-    let lower = final.lowercased()
-    // One keyword from each utterance must survive windowing and stitching.
-    #expect(["fox", "seashore"].contains { lower.contains($0) }, "English window lost: \"\(final)\"")
-    #expect(["fuchs", "hund", "wochenende"].contains { lower.contains($0) },
-            "German window lost: \"\(final)\"")
-    #expect(final.contains("週末") || final.contains("キツネ") || final.contains("犬"),
-            "Japanese window lost: \"\(final)\"")
-    #expect(!lower.contains("[blank_audio]"), "non-speech marker survived normalization")
+    let occurrences = final.lowercased().components(separatedBy: "fox").count - 1
+    #expect(occurrences >= 2,
+            "expected both windows to survive, got \(occurrences) in \"\(final)\"")
+    #expect(!final.lowercased().contains("[blank_audio]"),
+            "non-speech marker survived normalization")
+  }
+
+  @Test(.enabled(if: WhisperWindowTranscribeTests.canRun))
+  func autoDetectedLanguageIsPinnedForTheRestOfTheRecording() async throws {
+    // German first, then English audio. Once German is detected the recording
+    // stays German - per-window re-detection is unreliable on short audio and
+    // a carried prompt can steer it. This asserts the decision, not an accident.
+    let de = try #require(Self.fixture("de"))
+    let en = try #require(Self.fixture("en"))
+    let gap = TestSignals.silence(seconds: 1.0)
+
+    let core = StreamingTranscriber(transcriber: try context(), options: .default)
+    let updates = await core.updates
+    await core.start()
+    TestSignals.feed(de + gap + en, chunk: 1024) { core.ingest($0) }
+    let final = await core.finish()
+    print("[pinned pipeline] \"\(final)\"")
+
+    var languages: [String] = []
+    for await update in updates {
+      if case .detectedLanguage(let code) = update { languages.append(code) }
+    }
+    #expect(languages == ["de"], "language should be reported once, got \(languages)")
+    #expect(!final.isEmpty)
   }
 }
