@@ -25,10 +25,14 @@ priority order:
    is a `PBXFileSystemSynchronizedRootGroup` excluding only `Info.plist`, so both targets
    bundle all four models — but `SettingsView.swift:47` hides the model picker behind
    `#if PRO_VERSION`, locking free users to `base` (57 MB).
-2. **Transcription is O(n²) and unbounded.** `RealTimeWhisper.swift:227-231` appends to
-   `dataFloats` and re-transcribes *the entire accumulated buffer* on every tap callback.
-   A 60-minute recording holds ~230 MB of float32 in memory and re-runs whisper over all
-   of it, repeatedly. Every long-form feature is gated on fixing this.
+2. **The live transcript stops being live, and memory is unbounded.**
+   `RealTimeWhisper.swift:227-231` appends to `dataFloats` and re-transcribes *the entire
+   accumulated buffer* on every accepted pass. Total CPU is **not** quadratic — the
+   `canTranscribe` guard drops callbacks arriving mid-pass, so pass starts grow
+   geometrically and work stays linear with a ~2.5x constant. What is unbounded is
+   memory (~3.8 MB per recorded minute, ~230 MB peak at 30 minutes once the per-callback
+   COW copy is counted) and the gap between UI updates, which *is* the pass duration:
+   ~200 s at 10 minutes, ~600 s at 30. Every long-form feature is gated on fixing this.
 3. **Zero accessibility modifiers and zero localization.** No `.accessibilityLabel`
    anywhere in `Views/` or `UI/`; no `.xcstrings`, no `.lproj`. The app transcribes ~99
    languages behind an English-only, screen-reader-hostile UI.
