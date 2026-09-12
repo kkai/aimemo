@@ -280,44 +280,11 @@ class RealTimeWhisper {
     }
     
     func decodePCMBuffer(_ buffer: AVAudioPCMBuffer) throws -> [Float] {
-        guard let floatChannelData = buffer.floatChannelData else {
-            throw NSError(domain: "Invalid PCM Buffer", code: 0, userInfo: nil)
-        }
-
-        let channelCount = Int(buffer.format.channelCount)
-        let frameLength = Int(buffer.frameLength)
-
-        var floats = [Float]()
-
-        for frame in 0..<frameLength {
-            for channel in 0..<channelCount {
-                let floatData = floatChannelData[channel]
-                let index = frame * channelCount + channel
-                let floatSample = floatData[index]
-                floats.append(max(-1.0, min(floatSample, 1.0)))
-            }
-        }
-
-        return floats
+        try AudioSamples.floats(from: buffer)
     }
 
     func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let channelData = buffer.floatChannelData else { return 0.0 }
-
-        let channelDataValue = channelData.pointee
-        let channelDataValueArray = stride(
-            from: 0,
-            to: Int(buffer.frameLength),
-            by: buffer.stride
-        ).map { channelDataValue[$0] }
-
-        // Calculate RMS (Root Mean Square) for amplitude
-        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(channelDataValueArray.count))
-
-        // Normalize and apply some scaling for better visualization
-        let normalizedLevel = min(rms * 10, 1.0)
-
-        return normalizedLevel
+        AudioSamples.meterLevel(from: buffer)
     }
     
     // MARK: - Elapsed timer

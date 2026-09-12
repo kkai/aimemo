@@ -193,22 +193,7 @@ class AppleSpeechRecognizer {
   // MARK: - Audio Processing
 
   private func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
-    guard let channelData = buffer.floatChannelData else { return 0.0 }
-
-    let channelDataValue = channelData.pointee
-    let channelDataValueArray = stride(
-      from: 0,
-      to: Int(buffer.frameLength),
-      by: buffer.stride
-    ).map { channelDataValue[$0] }
-
-    // Calculate RMS (Root Mean Square) for amplitude
-    let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(channelDataValueArray.count))
-
-    // Normalize and apply scaling for better visualization
-    let normalizedLevel = min(rms * 10, 1.0)
-
-    return normalizedLevel
+    AudioSamples.meterLevel(from: buffer)
   }
 
   // MARK: - Language Support
