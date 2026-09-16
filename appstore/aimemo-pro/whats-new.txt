@@ -6,3 +6,4 @@ ai-Memo Pro 2.5 puts you in control of the language:
 • Custom vocabulary — teach it the names, jargon and acronyms it used to guess at.
 • Share from your history — swipe or long-press any recording to share or copy it.
 • Share straight from the recording screen, and landscape support on iPhone and iPad.
+• Long recordings stay live — transcription now runs in short windows, so memory stays flat and the live text no longer falls behind on meeting-length recordings.

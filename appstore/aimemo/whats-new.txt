@@ -6,3 +6,4 @@ ai-Memo 2.5 puts you in control of the language:
 • Custom vocabulary — teach it the names, jargon and acronyms it used to guess at.
 • Much smaller download — the app is now around a tenth of its previous size.
 • Share straight from the recording screen, and landscape support on iPhone and iPad.
+• Long recordings stay live — transcription now runs in short windows, so memory stays flat and the live text no longer falls behind on meeting-length recordings.
