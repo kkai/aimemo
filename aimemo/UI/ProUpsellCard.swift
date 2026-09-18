@@ -12,18 +12,18 @@ struct ProUpsellCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("Unlock more with aiMemo Pro")
+      Text("More in ai-Memo Pro")
         .font(.system(size: 17, weight: .semibold))
         .foregroundStyle(Theme.textPrimary)
 
-      Text("Recording history, all Whisper models, and more.")
+      Text("Recording history and all four Whisper models.")
         .font(.system(size: 15))
         .foregroundStyle(Theme.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
 
       Link(destination: url) {
         HStack(spacing: 4) {
-          Text("Get aiMemo Pro")
+          Text("Get ai-Memo Pro")
             .font(.system(size: 15, weight: .semibold))
           Image(systemName: "chevron.right")
             .font(.system(size: 13, weight: .semibold))

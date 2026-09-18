@@ -115,7 +115,7 @@ struct RecordingView: View {
       Text("aiMemo")
         .font(.system(size: 40, weight: .regular, design: .serif))
         .foregroundStyle(Theme.textPrimary)
-      Text("Record speech and convert it to text.\nLonger recordings might take a while to convert.")
+      Text("Tap the button and start talking.\nThe text appears while you speak.")
         .font(.system(size: 15))
         .foregroundStyle(Theme.textSecondary)
         .multilineTextAlignment(.center)

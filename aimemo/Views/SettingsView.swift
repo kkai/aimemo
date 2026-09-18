@@ -98,10 +98,10 @@ struct SettingsView: View {
           Text("Transcription Engine")
         } footer: {
           if selectedEngine == .appleSpeech {
-            Text("Apple Speech provides faster transcription using system-integrated speech recognition.")
+            Text("Apple Speech starts quickly. iOS runs it on the device where it supports your language.")
               .font(.caption)
           } else {
-            Text("Whisper models provide higher accuracy using offline AI models.")
+            Text("Whisper runs on your device and works offline. It detects the language by itself.")
               .font(.caption)
           }
         }
