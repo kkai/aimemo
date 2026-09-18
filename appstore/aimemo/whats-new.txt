@@ -1,9 +1,9 @@
-ai-Memo 2.5 puts you in control of the language:
+ai-Memo 2.5 gives you control over the language.
 
-• Translate to English — speak any of the ~99 supported languages and get English text back, still entirely on your device.
-• Language picker — let Whisper detect the language, or pin one when you are recording short clips.
-• See what was detected — the language now appears next to the recording timer.
-• Custom vocabulary — teach it the names, jargon and acronyms it used to guess at.
-• Much smaller download — the app is now around a tenth of its previous size.
-• Share straight from the recording screen, and landscape support on iPhone and iPad.
-• Long recordings stay live — transcription now runs in short windows, so memory stays flat and the live text no longer falls behind on meeting-length recordings.
+• Translate to English: speak any of the roughly 99 supported languages and get English text back. It still runs on your device.
+• Language picker: let Whisper detect the language, or pin one when you record short clips.
+• The detected language now shows next to the recording timer.
+• Custom vocabulary: add the names, jargon and acronyms it used to guess at.
+• The download is now around a tenth of its previous size.
+• You can share straight from the recording screen, and the app works in landscape on iPhone and iPad.
+• Long recordings: transcription now runs in short windows, so memory use stays flat and the live text keeps up on meeting-length recordings.

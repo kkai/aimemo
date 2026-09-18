@@ -1,1 +1,1 @@
-Speech to text in ~99 languages, entirely on your device. Translate to English as you speak. Private, offline, no account needed.
+Speech to text in about 99 languages, on your device. Whisper works offline and can translate what you say into English. No account, no ads.

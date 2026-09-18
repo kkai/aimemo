@@ -1,25 +1,24 @@
-ai-Memo transforms your voice into accurate text using advanced on-device AI. Choose between two powerful transcription engines to match your needs.
+ai-Memo turns speech into text on your iPhone or iPad. Tap record, talk, and the transcript appears while you speak.
 
-DUAL ENGINE TRANSCRIPTION
-Switch between Whisper AI and Apple Speech with a single tap:
+TWO ENGINES
+You choose the engine in Settings and can change it at any time.
 
-- Whisper AI: Industry-leading accuracy powered by OpenAI's whisper.cpp, running entirely on your device. Now multilingual — automatically detects and transcribes around 99 languages. Ideal for interviews, meetings, and technical discussions.
-- Apple Speech: Fast recognition with multi-language support. Perfect for quick notes and everyday use.
+- Whisper: OpenAI's Whisper model, running on your device through whisper.cpp. It detects the language by itself and transcribes about 99 of them. Good for interviews, meetings and technical discussions.
+- Apple Speech: Apple's built-in speech recognition. It starts quickly and suits short notes.
 
-LANGUAGE CONTROL
-- Automatic detection across ~99 languages, or pin a language when you are recording short clips
-- Translate to English: speak any supported language, get English text, still entirely offline
+LANGUAGES
+- Automatic detection, or pin a language when you record short clips
+- Translate to English: speak any supported language and get English text, still offline
 - Custom vocabulary for names, jargon and acronyms
 
-PRIVACY FIRST
-All transcription happens on your device. Your voice data never leaves your iPhone or iPad. No internet connection required for Whisper models.
+PRIVACY
+Whisper runs entirely on your device and needs no internet connection, so your audio and text stay on your iPhone or iPad. Apple Speech also runs on the device where iOS supports your language. The app has no account, no ads and no analytics.
 
-KEY FEATURES
-- Automatic language detection across ~99 languages
-- Real-time gradient waveform and recording timer
-- Live text display as you speak
-- One-tap copy to clipboard
-- Refined dark interface
-- Metal GPU acceleration for fast processing
+ALSO INCLUDED
+- Live waveform and recording timer, with the detected language next to it
+- Copy with one tap, or share from the recording screen
+- Landscape on iPhone and iPad
+- Dark interface
+- Metal GPU acceleration
 
-Upgrade to ai-Memo Pro for recording history and multiple Whisper model sizes.
+ai-Memo Pro adds a recording history and a choice of four Whisper models.

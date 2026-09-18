@@ -1,0 +1,8 @@
+ai-Memo needs no login and has no in-app purchases.
+
+To test: allow microphone access, tap the red button, speak, tap again to stop. The transcript appears while you speak. Whisper is the default engine and runs entirely on the device, so the app works in airplane mode. Settings has the language picker, Translate to English and the custom vocabulary.
+
+The Apple Speech engine (Settings) asks for speech recognition permission the first time it is selected.
+
+The app makes no network requests and collects no data.
+Contact: Kai Kunze, kai.kunze@gmail.com
