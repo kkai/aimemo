@@ -23,16 +23,22 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
   let updates: AsyncStream<TranscriptionUpdate>
   private let updateContinuation: AsyncStream<TranscriptionUpdate>.Continuation
 
-  private let recognizer: AppleSpeechRecognizer
+  private let recognizer: SpeechRecognizing
+  /// Text from runs that have ended. The recogniser restarts from empty on
+  /// every `startRecording()`, so each run's text is committed once, on pause
+  /// or finish, and appended here.
   private var transcript = LiveTranscript()
+  /// True between a start/resume and the pause/finish that commits that run.
+  private var runIsOpen = false
   private var mirror: Task<Void, Never>?
 
-  init(options: TranscriptionOptions) {
-    self.recognizer = AppleSpeechRecognizer()
+  init(options: TranscriptionOptions,
+       recognizer: SpeechRecognizing? = nil) {
+    self.recognizer = recognizer ?? AppleSpeechRecognizer()
     var sink: AsyncStream<TranscriptionUpdate>.Continuation!
     self.updates = AsyncStream(bufferingPolicy: .unbounded) { sink = $0 }
     self.updateContinuation = sink
-    recognizer.setLanguage(AppleSpeechRecognizer.preferredLocale(for: options.language))
+    self.recognizer.setLanguage(AppleSpeechRecognizer.preferredLocale(for: options.language))
   }
 
   func start() async throws {
@@ -42,6 +48,7 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
       throw SessionError.notAuthorized
     }
     try recognizer.startRecording()
+    runIsOpen = true
     startMirroring()
   }
 
@@ -50,8 +57,10 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
   private func startMirroring() {
     mirror = Task { @MainActor [weak self] in
       while let self, !Task.isCancelled, self.recognizer.isRecording {
-        self.transcript.setProvisional(self.recognizer.transcribedText, confidence: 1)
-        self.updateContinuation.yield(.transcript(self.transcript))
+        // Earlier runs as committed text, this run as the provisional tail.
+        var shown = self.transcript
+        shown.setProvisional(self.recognizer.transcribedText, confidence: 1)
+        self.updateContinuation.yield(.transcript(shown))
         self.updateContinuation.yield(.level(self.recognizer.audioLevels.last ?? 0))
         try? await Task.sleep(for: .milliseconds(100))
       }
@@ -60,11 +69,15 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
 
   func pause() async {
     recognizer.stopRecording()
+    mirror?.cancel()
+    mirror = nil
     commitWhatWasHeard()
+    updateContinuation.yield(.transcript(transcript))
   }
 
   func resume() async throws {
     try recognizer.startRecording()
+    runIsOpen = true
     startMirroring()
   }
 
@@ -86,13 +99,16 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
     updateContinuation.finish()
   }
 
+  /// Appends the run that just ended. The recogniser's text is cumulative
+  /// within a run only; it used to replace the whole transcript here, so
+  /// anything said before a pause was lost at the next pause or at finish.
+  /// Guarded, because the recogniser keeps its text after stopping: a pause
+  /// followed by finish would otherwise commit the same run twice.
   private func commitWhatWasHeard() {
-    let heard = recognizer.transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
     transcript.clearProvisional()
-    guard !heard.isEmpty else { return }
-    // The recogniser reports cumulatively, so this replaces rather than appends.
-    transcript = LiveTranscript()
-    transcript.commit(heard)
+    guard runIsOpen else { return }
+    runIsOpen = false
+    transcript.commit(recognizer.transcribedText)
   }
 
   enum SessionError: Error { case notAuthorized }
