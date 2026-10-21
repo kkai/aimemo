@@ -39,6 +39,9 @@ final class RealTimeWhisper {
   var canStop: Bool { state == .recording || state == .paused }
   /// True while the final flush is running.
   var isBusy: Bool { state == .stopping }
+  /// Set while paused: whether the user paused or the system did (a call,
+  /// Siri, an alarm). Only a system pause is resumed automatically.
+  private(set) var pauseReason: PauseReason?
 
   /// Committed text. This is what gets saved, copied and shared.
   var transcribedText = ""
@@ -85,13 +88,18 @@ final class RealTimeWhisper {
   private var segmentStart: Date?
   private var timerTask: Task<Void, Never>?
 
+  /// Kept alive for the recorder's lifetime; owns the notification observers.
+  private var liveSessionEvents: AudioSessionEvents?
+  private var sessionEventsTask: Task<Void, Never>?
+
   // MARK: - Init
 
   init(
     loader: WhisperModelLoader = WhisperModelLoader(),
     makeSession: (
       (TranscriptionEngine, TranscriptionOptions, WhisperContext?) -> LiveTranscriptionSession
-    )? = nil
+    )? = nil,
+    sessionEvents: AsyncStream<AudioSessionEvent>? = nil
   ) {
     self.loader = loader
     self.makeSession = makeSession ?? { engine, options, context in
@@ -111,6 +119,21 @@ final class RealTimeWhisper {
       canTranscribe = true
     } catch {
       print("Error loading model: \(error.localizedDescription)")
+    }
+
+    let events: AsyncStream<AudioSessionEvent>
+    if let sessionEvents {
+      events = sessionEvents
+    } else {
+      let live = AudioSessionEvents()
+      liveSessionEvents = live
+      events = live.events
+    }
+    sessionEventsTask = Task { [weak self] in
+      for await event in events {
+        guard let self else { return }
+        await self.handle(event)
+      }
     }
   }
 
@@ -153,6 +176,7 @@ final class RealTimeWhisper {
     provisionalConfidence = 0
     detectedLanguageCode = nil
     errorMessage = nil
+    pauseReason = nil
     audioLevels = []
     activeOptions = .current
     elapsedBase = 0
@@ -175,9 +199,15 @@ final class RealTimeWhisper {
     }
   }
 
+  /// A pause the user asked for.
   func pause() async {
+    await pause(reason: .user)
+  }
+
+  private func pause(reason: PauseReason) async {
     guard state == .recording else { return }
     state = .paused
+    pauseReason = reason
     stopTimer()
     elapsedBase += Date().timeIntervalSince(segmentStart ?? Date())
     await session?.pause()
@@ -189,8 +219,45 @@ final class RealTimeWhisper {
       try await session.resume()
       segmentStart = Date()
       state = .recording
+      pauseReason = nil
+      errorMessage = nil
       startTimer()
     } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  // MARK: - Interruptions
+
+  func handle(_ event: AudioSessionEvent) async {
+    switch InterruptionPolicy.action(for: event, state: state, pauseReason: pauseReason) {
+    case .ignore:
+      break
+    case .pause:
+      await pause(reason: .interruption)
+    case .resume:
+      await resume()
+    case .restartCapture:
+      await restartCapture()
+    case .stop:
+      await stopRecord()
+      errorMessage = "The system reset its audio. The transcript up to that point was kept."
+    }
+  }
+
+  /// Picks up a new input device without the user seeing a pause. Pausing the
+  /// session commits the open window, so nothing is glued across the switch.
+  private func restartCapture() async {
+    guard state == .recording, let session else { return }
+    await session.pause()
+    do {
+      try await session.resume()
+    } catch {
+      // No usable input right now: hold the recording rather than lose it.
+      state = .paused
+      pauseReason = .interruption
+      stopTimer()
+      elapsedBase += Date().timeIntervalSince(segmentStart ?? Date())
       errorMessage = error.localizedDescription
     }
   }
@@ -202,6 +269,7 @@ final class RealTimeWhisper {
     guard state == .recording || state == .paused else { return }
     let wasRecording = state == .recording
     state = .stopping
+    pauseReason = nil
     stopTimer()
     // Paused time is already folded into elapsedBase; adding it twice would
     // inflate the saved duration.

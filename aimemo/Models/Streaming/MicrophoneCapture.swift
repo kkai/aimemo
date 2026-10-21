@@ -71,6 +71,12 @@ actor MicrophoneCapture {
     #endif
 
     let input = engine.inputNode
+    // An interruption stops the engine but leaves the tap in place, and a
+    // second installTap on the same bus is a crash.
+    if isTapped {
+      input.removeTap(onBus: 0)
+      isTapped = false
+    }
     let inputFormat = input.inputFormat(forBus: 0)
     guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
       // Happens when another app holds the microphone; the old code

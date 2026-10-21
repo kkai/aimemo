@@ -69,7 +69,7 @@ New pure `InterruptionPolicy` (a `Sendable` struct, like `PauseDetector`):
 | input lost (route change: old device unavailable) | recording | restart capture on the new route: `pause()` then `resume()`, which commits the open window so the seam isn't glued |
 | services reset | recording/paused | stop and save what's committed, with an error line |
 
-- Ignore `.began` events that carry `AVAudioSessionInterruptionReasonKey == .appWasSuspended`. They are stale and arrive on relaunch.
+- No special case for stale `.appWasSuspended` interruptions: iOS stopped sending that reason in 16, and the app targets 18.5.
 - `RealTimeWhisper` consumes the stream alongside `session.updates` and applies the policy. It also gains `pauseReason: PauseReason?` (`.user`, `.interruption`).
 - `MicrophoneCapture`: observe `AVAudioEngineConfigurationChange` and rebuild the converter on restart. `start()` already reads `inputFormat` fresh, so a pause/resume cycle covers it.
 - Tests: an `InterruptionPolicy` table test, and `RealTimeWhisperStateTests` with a fake event stream (call during recording, call during a user pause, resume refused).

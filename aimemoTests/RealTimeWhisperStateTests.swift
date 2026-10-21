@@ -22,7 +22,10 @@ struct RealTimeWhisperStateTests {
   private func makeRecorder(
     _ session: FakeTranscriptionSession
   ) -> RealTimeWhisper {
-    RealTimeWhisper(makeSession: { _, _, _ in session })
+    // An empty event stream: the live one would let a real route change on
+    // the test machine restart the fake mid-test.
+    RealTimeWhisper(makeSession: { _, _, _ in session },
+                    sessionEvents: AsyncStream { _ in })
   }
 
   // MARK: - Transitions

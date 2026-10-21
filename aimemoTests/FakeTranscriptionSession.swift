@@ -19,6 +19,8 @@ final class FakeTranscriptionSession: LiveTranscriptionSession {
   var finalText: String
   /// Thrown by start(), to exercise the failure path.
   var startError: Error?
+  /// Thrown by resume(), as when the input is still held by a call.
+  var resumeError: Error?
 
   private(set) var startCount = 0
   private(set) var pauseCount = 0
@@ -45,7 +47,10 @@ final class FakeTranscriptionSession: LiveTranscriptionSession {
   }
 
   func pause() async { pauseCount += 1 }
-  func resume() async throws { resumeCount += 1 }
+  func resume() async throws {
+    resumeCount += 1
+    if let resumeError { throw resumeError }
+  }
 
   func finish() async -> String {
     finishCount += 1
