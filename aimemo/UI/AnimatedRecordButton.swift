@@ -54,6 +54,8 @@ struct AnimatedRecordButton: View {
       }
     }
     .buttonStyle(PlainButtonStyle())
+    .accessibilityLabel(isRecording ? "Stop recording" : "Start recording")
+    .accessibilityHint(isRecording ? "Stops and keeps the transcript." : "")
   }
 }
 

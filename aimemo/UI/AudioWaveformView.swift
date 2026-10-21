@@ -31,7 +31,9 @@ struct AudioWaveformView: View {
 
   var body: some View {
     GeometryReader { geometry in
-      let barWidth = max(2, (geometry.size.width - CGFloat(barCount - 1) * barSpacing) / CGFloat(barCount))
+      // A 2 pt floor made 100 bars wider than an iPhone card, so the row ran
+      // past the right margin; 1 pt fits down to 300 pt.
+      let barWidth = max(1, (geometry.size.width - CGFloat(barCount - 1) * barSpacing) / CGFloat(barCount))
       HStack(alignment: .center, spacing: barSpacing) {
         ForEach(0..<barCount, id: \.self) { index in
           if index < levels.count {

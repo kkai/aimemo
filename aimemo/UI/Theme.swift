@@ -143,13 +143,19 @@ struct ActionButton: View {
 
 // MARK: - Status pill
 
-enum RecordingStatus {
+enum RecordingStatus: Equatable {
   case recording
+  /// `byInterruption`: a call, Siri or an alarm paused it, not the user.
+  case paused(byInterruption: Bool)
+  /// The final window is being decoded; on a long take this is seconds.
+  case finishing
   case complete
 
   var label: String {
     switch self {
     case .recording: return "Recording"
+    case .paused(let byInterruption): return byInterruption ? "Paused by a call or alarm" : "Paused"
+    case .finishing: return "Finishing…"
     case .complete: return "Complete"
     }
   }
@@ -157,6 +163,7 @@ enum RecordingStatus {
   var tint: Color {
     switch self {
     case .recording: return Theme.danger
+    case .paused, .finishing: return Theme.accent
     case .complete: return Theme.success
     }
   }
@@ -164,6 +171,8 @@ enum RecordingStatus {
   var systemName: String {
     switch self {
     case .recording: return "circle.fill"
+    case .paused: return "pause.fill"
+    case .finishing: return "ellipsis"
     case .complete: return "checkmark.circle"
     }
   }
@@ -188,5 +197,20 @@ struct StatusPill: View {
     .overlay(
       Capsule().stroke(status.tint.opacity(0.5), lineWidth: 1)
     )
+  }
+}
+
+// MARK: - Label with a tinted icon
+
+/// Coloured icon, plain text: the colour marks the kind of message, while the
+/// text stays at full contrast.
+struct TintedIconLabelStyle: LabelStyle {
+  let tint: Color
+
+  func makeBody(configuration: Configuration) -> some View {
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      configuration.icon.foregroundStyle(tint)
+      configuration.title
+    }
   }
 }

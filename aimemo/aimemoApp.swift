@@ -10,7 +10,7 @@ import SwiftData
 
 @main
 struct aimemoApp: App {
-  @State private var audioProcessor = RealTimeWhisper()
+  @State private var audioProcessor = LaunchOptions.makeRecorder()
 
   var body: some Scene {
     WindowGroup {
