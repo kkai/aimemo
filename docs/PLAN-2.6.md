@@ -1,7 +1,9 @@
 # ai-Memo 2.6 "A recorder you can trust": plan
 
 Written 2026-10-21. Covers both SKUs: ai-Memo (6502860819) and ai-Memo Pro (6503480155).
-Both have been on 2.5 since 2026-09-17, and nothing is in progress. Nothing here is built yet.
+Both have been on 2.5 since 2026-09-17.
+
+**Status, 2026-10-22:** steps 0, 1, 3 and 4 are built and tested on this branch (`f3b109d`, `5b73810`, `d2815a3`, `8b5b2bf`). Steps 2 and 5 are next and start with the device spike. Nothing is pushed or uploaded.
 
 ## Why
 
