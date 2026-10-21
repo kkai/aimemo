@@ -38,6 +38,17 @@
                ReferencedContainer = "container:aimemo.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "34C43B2A2D719161878F0584"
+               BuildableName = "aimemoUITests.xctest"
+               BlueprintName = "aimemoUITests"
+               ReferencedContainer = "container:aimemo.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

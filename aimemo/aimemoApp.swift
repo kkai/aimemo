@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct aimemoApp: App {
   @State private var audioProcessor = LaunchOptions.makeRecorder()
+  private let modelContainer = LaunchOptions.makeModelContainer()
 
   var body: some Scene {
     WindowGroup {
@@ -20,6 +21,6 @@ struct aimemoApp: App {
         .preferredColorScheme(.dark)
         .tint(Theme.accent)
     }
-    .modelContainer(for: Recording.self)
+    .modelContainer(modelContainer)
   }
 }

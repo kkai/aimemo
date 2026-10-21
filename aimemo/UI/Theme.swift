@@ -31,7 +31,9 @@ enum Theme {
   static let surfaceBorder = Color(hex: 0x23272E)
   static let textPrimary = Color(hex: 0xF5F6F7)
   static let textSecondary = Color(hex: 0x8A909A)
-  static let accent = Color(hex: 0x2F80FF)
+  /// 0x2F80FF until 2.6: 4.35:1 as text on its own 12% button fill, under
+  /// the 4.5:1 floor. This shade is 4.68:1 there and 5.4:1 on a card.
+  static let accent = Color(hex: 0x3A88FF)
   static let danger = Color(hex: 0xFF453A)
   static let success = Color(hex: 0x30D158)
 
@@ -76,8 +78,14 @@ extension View {
 
 struct CircleIconButton: View {
   let systemName: String
+  /// Spoken name. Without it VoiceOver read the symbol name ("gearshape").
+  let label: String
   let action: () -> Void
-  var size: CGFloat = 40
+
+  /// 44 pt, the minimum touch target; it was 40. Grows with the text size,
+  /// but stops at 64: unbounded, it reached 120 pt at the largest size.
+  @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 44
+  private var size: CGFloat { min(scaledSize, 64) }
 
   var body: some View {
     Button(action: action) {
@@ -89,6 +97,7 @@ struct CircleIconButton: View {
         .overlay(Circle().stroke(Theme.surfaceBorder, lineWidth: 1))
     }
     .buttonStyle(.plain)
+    .accessibilityLabel(label)
   }
 }
 
@@ -102,10 +111,10 @@ struct ActionButtonStyleModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .font(.system(size: 15, weight: .medium))
+      .font(.subheadline.weight(.medium))
       .foregroundStyle(tint)
-      .frame(maxWidth: .infinity)
-      .padding(.vertical, 12)
+      .frame(maxWidth: .infinity, minHeight: 44)
+      .padding(.vertical, 6)
       .background(
         RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
           .fill(tint.opacity(0.12))
@@ -184,9 +193,10 @@ struct StatusPill: View {
   var body: some View {
     HStack(spacing: 8) {
       Image(systemName: status.systemName)
-        .font(.system(size: status == .recording ? 10 : 15, weight: .semibold))
+        .font(status == .recording ? .caption2.weight(.semibold) : .subheadline.weight(.semibold))
+        .accessibilityHidden(true)
       Text(status.label)
-        .font(.system(size: 15, weight: .semibold))
+        .font(.subheadline.weight(.semibold))
     }
     .foregroundStyle(status == .recording ? Theme.danger : Theme.textPrimary)
     .padding(.horizontal, 16)
@@ -197,6 +207,8 @@ struct StatusPill: View {
     .overlay(
       Capsule().stroke(status.tint.opacity(0.5), lineWidth: 1)
     )
+    .accessibilityElement(children: .combine)
+    .accessibilityAddTraits(.updatesFrequently)
   }
 }
 

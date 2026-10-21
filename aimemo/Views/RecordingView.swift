@@ -19,6 +19,9 @@ struct RecordingView: View {
   @State private var showingSettings = false
   @State private var showingHistory = false
 
+  /// The wordmark keeps its 40 pt look at the default size and scales from it.
+  @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 40
+
   private var showActivity: Bool {
     audioProcessor.canStop
       || audioProcessor.isBusy
@@ -76,13 +79,17 @@ struct RecordingView: View {
           VStack(spacing: 20) {
             title
 
-            #if !PRO_VERSION
-            ProUpsellCard()
-            #endif
-
             if showActivity {
               activity
             }
+
+            #if !PRO_VERSION
+            // Below the transcript and never during a take: above a live
+            // transcript it pushed the card and its buttons below the fold.
+            if audioProcessor.state == .idle {
+              ProUpsellCard()
+            }
+            #endif
           }
           .padding(.horizontal, 20)
           .padding(.bottom, 24)
@@ -108,18 +115,22 @@ struct RecordingView: View {
         .frame(height: 60)
       HStack(spacing: 8) {
         Text(audioProcessor.formattedElapsedTime)
-          .font(.system(size: 15, weight: .regular).monospacedDigit())
+          .font(.subheadline.monospacedDigit())
         if let code = audioProcessor.detectedLanguageCode {
           Text("·")
           // The app has detected ~99 languages since 2.4 without ever
           // saying so; this is the only place the user can see it work.
           Text(TranscriptionLanguage.localizedName(for: code))
-            .font(.system(size: 15, weight: .medium))
+            .font(.subheadline.weight(.medium))
             .transition(.opacity)
         }
       }
       .foregroundStyle(Theme.textSecondary)
       .animation(.easeInOut(duration: 0.2), value: audioProcessor.detectedLanguageCode)
+      // "Elapsed 1 minute 5 seconds, detected language English", not "00:65 dot".
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(elapsedAndLanguageLabel)
+      .accessibilityAddTraits(.updatesFrequently)
     }
 
     transcriptCard
@@ -128,9 +139,9 @@ struct RecordingView: View {
 
   private var header: some View {
     HStack(spacing: 12) {
-      CircleIconButton(systemName: "gearshape") { showingSettings = true }
+      CircleIconButton(systemName: "gearshape", label: "Settings") { showingSettings = true }
       #if PRO_VERSION
-      CircleIconButton(systemName: "clock.arrow.circlepath") { showingHistory = true }
+      CircleIconButton(systemName: "clock.arrow.circlepath", label: "History") { showingHistory = true }
       #endif
       Spacer()
     }
@@ -141,12 +152,17 @@ struct RecordingView: View {
   private var title: some View {
     VStack(spacing: 10) {
       Text("aiMemo")
-        .font(.system(size: 40, weight: .regular, design: .serif))
+        .font(.system(size: titleSize, weight: .regular, design: .serif))
         .foregroundStyle(Theme.textPrimary)
-      Text("Tap the button and start talking.\nThe text appears while you speak.")
-        .font(.system(size: 15))
+        .accessibilityLabel("ai-Memo")
+        .accessibilityAddTraits(.isHeader)
+      // Wraps by width, not a hard line break, so it reflows at large sizes.
+      Text("Tap the button and start talking. The text appears while you speak.")
+        .font(.subheadline)
         .foregroundStyle(Theme.textSecondary)
         .multilineTextAlignment(.center)
+        .frame(maxWidth: 300)
+        .fixedSize(horizontal: false, vertical: true)
     }
     .padding(.top, 8)
   }
@@ -160,12 +176,16 @@ struct RecordingView: View {
          + Text(verbatim: audioProcessor.provisionalText)
           // Still being decoded; dimmed until the window commits.
           .foregroundColor(Theme.textSecondary))
-          .font(.system(size: 19))
+          .font(.title3)
           .lineSpacing(4)
           .frame(maxWidth: .infinity, alignment: .leading)
           .textSelection(.enabled)
+          .accessibilityLabel(audioProcessor.displayText.isEmpty ? "No transcript yet" : audioProcessor.displayText)
+          // The dimming says it by sight; the value says it by ear.
+          .accessibilityValue(audioProcessor.provisionalText.isEmpty ? "" : "The last words are still being transcribed")
+          .accessibilityAddTraits(.updatesFrequently)
       }
-      .frame(maxHeight: 220)
+      .frame(maxHeight: transcriptHeight)
 
       HStack(spacing: 12) {
         ActionButton(title: "Copy", systemName: "doc.on.doc", tint: Theme.accent) {
@@ -175,6 +195,8 @@ struct RecordingView: View {
           #elseif os(macOS)
           NSPasteboard.general.setString(audioProcessor.displayText, forType: .string)
           #endif
+          // The copy had no feedback at all, seen or heard.
+          AccessibilityNotification.Announcement("Transcript copied").post()
         }
         // Sharing previously required saving first, which the free app never
         // does - so a free user could only ever copy-paste out of the app.
@@ -193,6 +215,18 @@ struct RecordingView: View {
     }
     .cardSurface()
   }
+
+  private var elapsedAndLanguageLabel: String {
+    let seconds = Int(audioProcessor.elapsedTime)
+    let elapsed = Duration.seconds(seconds)
+      .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
+    guard let code = audioProcessor.detectedLanguageCode else { return "Elapsed \(elapsed)" }
+    return "Elapsed \(elapsed), detected language \(TranscriptionLanguage.localizedName(for: code))"
+  }
+
+  /// Grows with the text size, so at the largest sizes the card still shows
+  /// more than two lines.
+  @ScaledMetric(relativeTo: .title3) private var transcriptHeight: CGFloat = 220
 
   private func errorLine(_ message: String) -> some View {
     Label(message, systemImage: "exclamationmark.triangle.fill")

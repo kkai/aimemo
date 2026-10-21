@@ -11,6 +11,7 @@ struct RecordingDetailView: View {
   let recording: Recording
 
   @Environment(\.modelContext) private var modelContext
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var viewModel = RecordingsViewModel()
   @State private var showingShareSheet = false
   @State private var copiedToClipboard = false
@@ -25,12 +26,14 @@ struct RecordingDetailView: View {
           Text(recording.displayTitle)
             .font(.title2)
             .bold()
+            .accessibilityAddTraits(.isHeader)
             .foregroundStyle(Theme.textPrimary)
 
           HStack {
             Label(recording.formattedDate, systemImage: "calendar")
             Spacer()
             Label(recording.formattedDuration, systemImage: "clock")
+              .accessibilityLabel("Duration \(recording.spokenDuration)")
           }
           .font(.subheadline)
           .foregroundStyle(Theme.textSecondary)
@@ -42,6 +45,7 @@ struct RecordingDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
           Text("Transcript")
             .font(.headline)
+            .accessibilityAddTraits(.isHeader)
             .foregroundStyle(Theme.textSecondary)
 
           Text(recording.transcriptText)
@@ -59,6 +63,7 @@ struct RecordingDetailView: View {
             HStack {
               Text("AI Summary")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
                 .foregroundStyle(Theme.textSecondary)
 
               Spacer()
@@ -126,7 +131,7 @@ struct RecordingDetailView: View {
           .overlay(Capsule().stroke(Theme.surfaceBorder, lineWidth: 1))
           .foregroundStyle(Theme.textPrimary)
           .padding(.top, 8)
-          .transition(.move(edge: .top).combined(with: .opacity))
+          .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
       }
     }
     .sheet(isPresented: $viewModel.isShowingEditSheet) {
@@ -156,6 +161,7 @@ struct RecordingDetailView: View {
 
   private func copyToClipboard() {
     UIPasteboard.general.string = recording.transcriptText
+    AccessibilityNotification.Announcement("Transcript copied").post()
 
     withAnimation {
       copiedToClipboard = true

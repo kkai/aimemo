@@ -23,6 +23,7 @@ struct RecordingRow: View {
 
         // Duration badge
         Text(recording.formattedDuration)
+          .accessibilityLabel(recording.spokenDuration)
           .font(.caption)
           .foregroundStyle(Theme.textSecondary)
           .padding(.horizontal, 8)
@@ -47,6 +48,7 @@ struct RecordingRow: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .cardSurface(padding: 14)
+    .accessibilityElement(children: .combine)
   }
 }
 

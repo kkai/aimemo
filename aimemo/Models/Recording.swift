@@ -61,6 +61,12 @@ final class Recording {
     return String(format: "%d:%02d", minutes, seconds)
   }
 
+  /// "2 minutes, 5 seconds", for VoiceOver; the badge shows "2:05".
+  var spokenDuration: String {
+    Duration.seconds(Int(duration))
+      .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
+  }
+
   var transcriptPreview: String {
     let maxLength = 100
     if transcriptText.count > maxLength {

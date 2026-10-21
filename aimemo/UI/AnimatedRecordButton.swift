@@ -12,12 +12,19 @@ struct AnimatedRecordButton: View {
   var onStart: () -> Void
   var onStop: () -> Void
 
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   private let outerSize: CGFloat = 96
   private let ringWidth: CGFloat = 6
 
+  /// The glyph swap springs and scales; under Reduce Motion it only fades.
+  private var glyphTransition: AnyTransition {
+    reduceMotion ? .opacity : .scale.combined(with: .opacity)
+  }
+
   var body: some View {
     Button(action: {
-      withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+      withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.3, dampingFraction: 0.6)) {
         if isRecording {
           onStop()
         } else {
@@ -44,12 +51,12 @@ struct AnimatedRecordButton: View {
           RoundedRectangle(cornerRadius: 6)
             .fill(Color.white)
             .frame(width: outerSize * 0.28, height: outerSize * 0.28)
-            .transition(.scale.combined(with: .opacity))
+            .transition(glyphTransition)
         } else {
           Image(systemName: "mic.fill")
             .font(.system(size: outerSize * 0.34, weight: .medium))
             .foregroundStyle(Color.white)
-            .transition(.scale.combined(with: .opacity))
+            .transition(glyphTransition)
         }
       }
     }

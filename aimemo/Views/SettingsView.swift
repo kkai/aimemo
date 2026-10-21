@@ -57,6 +57,7 @@ struct SettingsView: View {
                 ModelSelectionRow(model: model, isSelected: selectedModel == model)
               }
               .buttonStyle(.plain)
+              .accessibilityAddTraits(selectedModel == model ? .isSelected : [])
             }
           } header: {
             Text("Available Whisper Models")
@@ -88,10 +89,14 @@ struct SettingsView: View {
                 if selectedEngine == engine {
                   Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(Theme.accent)
+                    .accessibilityHidden(true)
                 }
               }
+              .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(selectedEngine == engine ? .isSelected : [])
           }
 
         } header: {
@@ -167,6 +172,7 @@ struct SettingsView: View {
               Spacer()
               Image(systemName: "arrow.up.right.square")
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
             }
           }
         } header: {

@@ -55,6 +55,8 @@ struct AudioWaveformView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     .animation(.easeInOut(duration: 0.1), value: levels)
+    // A meter, not content: the status label already says Recording.
+    .accessibilityHidden(true)
   }
 }
 

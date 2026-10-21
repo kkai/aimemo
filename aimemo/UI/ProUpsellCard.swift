@@ -13,23 +13,24 @@ struct ProUpsellCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("More in ai-Memo Pro")
-        .font(.system(size: 17, weight: .semibold))
+        .font(.headline)
         .foregroundStyle(Theme.textPrimary)
 
       Text("Recording history and all four Whisper models.")
-        .font(.system(size: 15))
+        .font(.subheadline)
         .foregroundStyle(Theme.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
 
       Link(destination: url) {
         HStack(spacing: 4) {
           Text("Get ai-Memo Pro")
-            .font(.system(size: 15, weight: .semibold))
+            .font(.subheadline.weight(.semibold))
           Image(systemName: "chevron.right")
-            .font(.system(size: 13, weight: .semibold))
+            .font(.footnote.weight(.semibold))
+            .accessibilityHidden(true)
         }
         .foregroundStyle(Theme.accent)
-        .frame(maxWidth: .infinity, alignment: .trailing)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
       }
       .padding(.top, 2)
     }
