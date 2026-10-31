@@ -142,4 +142,20 @@ final class TranscriptionOptionsTests {
       #expect(resolved.identifier == "en-US")
     }
   }
+
+  // MARK: - Apple Speech contextual strings
+
+  @Test func contextualStringsSplitOnCommasAndLines() {
+    let options = TranscriptionOptions(customVocabulary: " Kunze, SwiftData\nwhisper.cpp ,\n\n ")
+    #expect(options.contextualStrings == ["Kunze", "SwiftData", "whisper.cpp"])
+  }
+
+  @Test func contextualStringsAreEmptyForNoVocabulary() {
+    #expect(TranscriptionOptions(customVocabulary: "").contextualStrings.isEmpty)
+  }
+
+  @Test func contextualStringsAreCappedAtAHundred() {
+    let many = (0..<150).map { "word\($0)" }.joined(separator: ",")
+    #expect(TranscriptionOptions(customVocabulary: many).contextualStrings.count == 100)
+  }
 }

@@ -25,7 +25,14 @@ struct RealTimeWhisperStateTests {
     // An empty event stream: the live one would let a real route change on
     // the test machine restart the fake mid-test.
     RealTimeWhisper(makeSession: { _, _, _ in session },
-                    sessionEvents: AsyncStream { _ in })
+                    sessionEvents: AsyncStream { _ in },
+                    keepScreenAwake: { _ in })
+  }
+
+  /// Records every idle-timer change the recorder asks for.
+  @MainActor
+  final class AwakeLog {
+    var values: [Bool] = []
   }
 
   // MARK: - Transitions
@@ -280,4 +287,85 @@ struct RealTimeWhisperStateTests {
     #expect(try container.mainContext.fetch(FetchDescriptor<Recording>()).isEmpty)
   }
   #endif
+
+  // MARK: - Honest stops
+
+  @Test func aSessionThatStopsByItselfEndsTheTakeAndSaysWhy() async {
+    let session = FakeTranscriptionSession(finalText: "what was heard")
+    let recorder = makeRecorder(session)
+    await recorder.start()
+    session.emit(.stopped(message: "Apple Speech stopped."))
+    try? await Task.sleep(for: .milliseconds(100))
+    #expect(recorder.state == .idle, "the pill must not stay on Recording")
+    #expect(session.finishCount == 1)
+    #expect(recorder.transcribedText == "what was heard")
+    #expect(recorder.errorMessage == "Apple Speech stopped.")
+  }
+
+  @Test func theScreenStaysAwakeOnlyWhileATakeIsLive() async {
+    let log = AwakeLog()
+    let session = FakeTranscriptionSession()
+    let recorder = RealTimeWhisper(makeSession: { _, _, _ in session },
+                                   sessionEvents: AsyncStream { _ in },
+                                   keepScreenAwake: { log.values.append($0) })
+    await recorder.start()
+    #expect(log.values == [true])
+    await recorder.pause()
+    await recorder.resume()
+    #expect(log.values == [true], "pause and resume keep the take live")
+    await recorder.stopRecord()
+    #expect(log.values == [true, false])
+  }
+
+  @Test func aFailedStartLetsTheScreenSleepAgain() async {
+    let log = AwakeLog()
+    let session = FakeTranscriptionSession(startError: FakeTranscriptionSession.FakeError.cannotStart)
+    let recorder = RealTimeWhisper(makeSession: { _, _, _ in session },
+                                   sessionEvents: AsyncStream { _ in },
+                                   keepScreenAwake: { log.values.append($0) })
+    await recorder.start()
+    #expect(log.values.last == false)
+  }
+
+  @Test func leavingTheAppPausesAndSaysSo() async {
+    let session = FakeTranscriptionSession()
+    let recorder = makeRecorder(session)
+    await recorder.start()
+    await recorder.enterBackground()
+    #expect(recorder.state == .paused)
+    #expect(recorder.pauseReason == .background)
+    #expect(session.pauseCount == 1)
+    #expect(recorder.errorMessage != nil)
+    await recorder.resume()
+    #expect(recorder.state == .recording)
+    #expect(recorder.errorMessage == nil)
+  }
+
+  @Test func leavingTheAppWhilePausedChangesNothing() async {
+    let session = FakeTranscriptionSession()
+    let recorder = makeRecorder(session)
+    await recorder.start()
+    await recorder.pause()
+    await recorder.enterBackground()
+    #expect(recorder.pauseReason == .user)
+    #expect(session.pauseCount == 1)
+  }
+
+  @Test func noAudioShowsAfterSilenceAndClearsOnSound() async {
+    let session = FakeTranscriptionSession()
+    let recorder = RealTimeWhisper(makeSession: { _, _, _ in session },
+                                   sessionEvents: AsyncStream { _ in },
+                                   noAudioAfter: 0.3,
+                                   keepScreenAwake: { _ in })
+    await recorder.start()
+    #expect(!recorder.noAudio)
+    session.emit(.level(0))
+    try? await Task.sleep(for: .milliseconds(700))
+    #expect(recorder.noAudio, "no sound for longer than the limit")
+    session.emit(.level(0.3))
+    try? await Task.sleep(for: .milliseconds(250))
+    #expect(!recorder.noAudio)
+    await recorder.pause()
+    #expect(!recorder.noAudio, "a paused take is expected to be silent")
+  }
 }

@@ -30,6 +30,16 @@ struct TranscriptionOptions: Equatable {
     return trimmed.isEmpty ? nil : trimmed
   }
 
+  /// The vocabulary as phrases for Apple Speech's `contextualStrings`: one per
+  /// comma or line. Apple suggests keeping the list to about 100.
+  var contextualStrings: [String] {
+    let phrases = customVocabulary
+      .split(whereSeparator: { $0 == "," || $0.isNewline })
+      .map { $0.trimmingCharacters(in: .whitespaces) }
+      .filter { !$0.isEmpty }
+    return Array(phrases.prefix(100))
+  }
+
   static let `default` = TranscriptionOptions()
 
   // MARK: - Persistence

@@ -154,8 +154,8 @@ struct ActionButton: View {
 
 enum RecordingStatus: Equatable {
   case recording
-  /// `byInterruption`: a call, Siri or an alarm paused it, not the user.
-  case paused(byInterruption: Bool)
+  /// Why: the user, a call/Siri/alarm, or the app leaving the screen.
+  case paused(PauseReason?)
   /// The final window is being decoded; on a long take this is seconds.
   case finishing
   case complete
@@ -163,7 +163,12 @@ enum RecordingStatus: Equatable {
   var label: String {
     switch self {
     case .recording: return "Recording"
-    case .paused(let byInterruption): return byInterruption ? "Paused by a call or alarm" : "Paused"
+    case .paused(let reason):
+      switch reason {
+      case .interruption: return "Paused by a call or alarm"
+      case .background: return "Paused while away"
+      case .user, nil: return "Paused"
+      }
     case .finishing: return "Finishing…"
     case .complete: return "Complete"
     }

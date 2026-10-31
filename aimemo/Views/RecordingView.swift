@@ -15,6 +15,7 @@ import UniformTypeIdentifiers
 
 struct RecordingView: View {
   @Environment(RealTimeWhisper.self) var audioProcessor
+  @Environment(\.scenePhase) private var scenePhase
 
   @State private var showingSettings = false
   @State private var showingHistory = false
@@ -32,7 +33,7 @@ struct RecordingView: View {
   private var status: RecordingStatus {
     switch audioProcessor.state {
     case .recording: return .recording
-    case .paused: return .paused(byInterruption: audioProcessor.pauseReason == .interruption)
+    case .paused: return .paused(audioProcessor.pauseReason)
     case .stopping: return .finishing
     case .idle: return .complete
     }
@@ -47,6 +48,14 @@ struct RecordingView: View {
     }
     .onChange(of: audioProcessor.errorMessage) { _, message in
       if let message { AccessibilityNotification.Announcement(message).post() }
+    }
+    .onChange(of: audioProcessor.noAudio) { _, silent in
+      if silent { AccessibilityNotification.Announcement(Self.noAudioHint).post() }
+    }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .background {
+        Task { await audioProcessor.enterBackground() }
+      }
     }
     .sheet(isPresented: $showingSettings) {
       SettingsView()
@@ -109,6 +118,10 @@ struct RecordingView: View {
   private var activity: some View {
     StatusPill(status: status)
       .padding(.top, 4)
+
+    if audioProcessor.noAudio && audioProcessor.state == .recording {
+      noAudioLine
+    }
 
     VStack(spacing: 6) {
       AudioWaveformView(levels: audioProcessor.audioLevels)
@@ -228,6 +241,20 @@ struct RecordingView: View {
   /// more than two lines.
   @ScaledMetric(relativeTo: .title3) private var transcriptHeight: CGFloat = 220
 
+  static let noAudioHint = "No sound from the microphone. Check that it is not covered or in use."
+
+  /// Shown while a take has had no audio for a few seconds. Static, so there
+  /// is nothing for Reduce Motion to tame; announced once when it appears.
+  private var noAudioLine: some View {
+    Label(Self.noAudioHint, systemImage: "mic.slash")
+      .font(.subheadline)
+      .foregroundStyle(Theme.textPrimary)
+      .labelStyle(TintedIconLabelStyle(tint: Theme.danger))
+      .multilineTextAlignment(.center)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityIdentifier("noAudioHint")
+  }
+
   private func errorLine(_ message: String) -> some View {
     Label(message, systemImage: "exclamationmark.triangle.fill")
       .font(.subheadline)
@@ -279,7 +306,7 @@ struct RecordingView: View {
     switch (old, new) {
     case (.idle, .recording): message = "Recording"
     case (.recording, .paused):
-      message = audioProcessor.pauseReason == .interruption ? "Paused by a call or alarm" : "Paused"
+      message = RecordingStatus.paused(audioProcessor.pauseReason).label
     case (.paused, .recording): message = "Recording resumed"
     case (.stopping, .idle): message = "Stopped. The transcript is ready."
     default: message = nil

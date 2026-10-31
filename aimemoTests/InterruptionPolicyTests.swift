@@ -36,6 +36,10 @@ struct InterruptionPolicyTests {
     #expect(action(.interruptionEnded(shouldResume: false), .paused, .interruption) == .ignore)
   }
 
+  @Test func aPauseForTheBackgroundIsNotResumedByACallEnding() {
+    #expect(action(.interruptionEnded(shouldResume: true), .paused, .background) == .ignore)
+  }
+
   @Test func aUsersPauseIsNeverResumedByTheSystem() {
     #expect(action(.interruptionEnded(shouldResume: true), .paused, .user) == .ignore)
   }

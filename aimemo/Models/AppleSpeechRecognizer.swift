@@ -9,26 +9,48 @@ import Foundation
 import Speech
 import AVFoundation
 
+/// `SFSpeechRecognizer` plus its own `AVAudioEngine` capture.
+///
+/// `@MainActor`: every observable property is written on main. The recognition
+/// callback and the audio tap run on framework queues, so they are built by
+/// `nonisolated` factories below and hop to main before touching state. This
+/// used to write `isRecording` and `audioLevels` from the callback queue.
+///
+/// Capture and recognition have separate lifetimes. A recognition task can end
+/// by itself (server recognition stops after about a minute, or an error), and
+/// then capture keeps running: `onRunEnded` reports it and the session starts
+/// a new task with `restartRecognition()`. Before, the task ending stopped
+/// everything without telling anyone, and the screen kept saying "Recording".
+@MainActor
 @Observable
-class AppleSpeechRecognizer {
+final class AppleSpeechRecognizer {
   var transcribedText = ""
   var isRecording = false
   var authorizationStatus: SFSpeechRecognizerAuthorizationStatus = .notDetermined
   var errorMessage: String?
   var audioLevels: [Float] = []
 
+  /// Called on main when the recognition task ended by itself while capture is
+  /// still running. Never called for `stopRecording()`.
+  @ObservationIgnored var onRunEnded: ((SpeechRunEnd) -> Void)?
+  /// Words to bias recognition toward (`contextualStrings`), applied to every
+  /// task started after it is set.
+  @ObservationIgnored var contextualStrings: [String] = []
+
   private let maxAudioLevels = 100
-  private var speechRecognizer: SFSpeechRecognizer?
-  private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-  private var recognitionTask: SFSpeechRecognitionTask?
-  private let audioEngine = AVAudioEngine()
+  @ObservationIgnored private var speechRecognizer: SFSpeechRecognizer?
+  @ObservationIgnored private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+  @ObservationIgnored private var recognitionTask: SFSpeechRecognitionTask?
+  /// The request the audio tap feeds. Read on the render thread.
+  @ObservationIgnored private let tapTarget = SpeechRequestFeed()
+  /// Identifies the current recognition task. Callbacks from any other task
+  /// (a cancelled one, or one that already ended) are dropped.
+  @ObservationIgnored private var runID = 0
+  @ObservationIgnored private let audioEngine = AVAudioEngine()
 
   #if os(iOS)
-  private let audioSession = AVAudioSession.sharedInstance()
+  @ObservationIgnored private let audioSession = AVAudioSession.sharedInstance()
   #endif
-
-  // Recording metadata for auto-save
-  private var recordingStartTime: Date?
 
   init() {
     speechRecognizer = SFSpeechRecognizer(locale: Self.preferredLocale())
@@ -40,14 +62,11 @@ class AppleSpeechRecognizer {
   // MARK: - Authorization
 
   func requestAuthorization() async -> Bool {
-    await withCheckedContinuation { continuation in
-      SFSpeechRecognizer.requestAuthorization { status in
-        DispatchQueue.main.async {
-          self.authorizationStatus = status
-          continuation.resume(returning: status == .authorized)
-        }
-      }
+    let status = await withCheckedContinuation { continuation in
+      SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
     }
+    authorizationStatus = status
+    return status == .authorized
   }
 
   // MARK: - Recording
@@ -62,21 +81,13 @@ class AppleSpeechRecognizer {
       )
     }
 
-    // Check availability
-    guard let recognizer = speechRecognizer, recognizer.isAvailable else {
-      throw NSError(
-        domain: "AppleSpeech",
-        code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Speech recognition not available"]
-      )
-    }
+    let recognizer = try availableRecognizer()
 
     // Reset state
     if audioEngine.isRunning {
       stopRecording()
     }
 
-    recordingStartTime = Date()
     transcribedText = ""
     errorMessage = nil
 
@@ -86,85 +97,52 @@ class AppleSpeechRecognizer {
     try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
     #endif
 
-    // Create recognition request
-    let request = SFSpeechAudioBufferRecognitionRequest()
-    request.shouldReportPartialResults = true
-
-    // Use on-device recognition if available (simulator doesn't support it)
-    if recognizer.supportsOnDeviceRecognition {
-      request.requiresOnDeviceRecognition = true
-      print("Using on-device speech recognition")
-    } else {
-      request.requiresOnDeviceRecognition = false
-      print("Using server-based speech recognition (on-device not available)")
-    }
-
-    // Optional: Add task hint for better accuracy (iOS 13+)
-    if #available(iOS 13.0, *) {
-      request.taskHint = .unspecified  // Can be .dictation, .search, .confirmation
-    }
-
-    recognitionRequest = request
-
-    // Start recognition task
-    recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-      guard let self = self else { return }
-
-      if let error = error {
-        DispatchQueue.main.async {
-          self.errorMessage = error.localizedDescription
-          print("Recognition error: \(error.localizedDescription)")
-        }
-        return
-      }
-
-      guard let result = result else { return }
-
-      // Update transcribed text
-      DispatchQueue.main.async {
-        self.transcribedText = result.bestTranscription.formattedString
-      }
-
-      // If final result, stop recording
-      if result.isFinal {
-        self.stopRecording()
-      }
-    }
+    beginRecognitionTask(with: recognizer)
 
     // Configure audio engine
     let inputNode = audioEngine.inputNode
     let recordingFormat = inputNode.outputFormat(forBus: 0)
-
-    inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, time in
-      guard let self = self else { return }
-
-      // Send audio to recognition
-      self.recognitionRequest?.append(buffer)
-
-      // Calculate amplitude for visualization
-      DispatchQueue.main.async {
-        let amplitude = self.calculateAmplitude(from: buffer)
-        self.audioLevels.append(amplitude)
-        if self.audioLevels.count > self.maxAudioLevels {
-          self.audioLevels.removeFirst()
-        }
-      }
-    }
+    inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat,
+                         block: Self.makeTap(feeding: tapTarget, owner: self))
 
     // Start audio engine
     audioEngine.prepare()
-    try audioEngine.start()
+    do {
+      try audioEngine.start()
+    } catch {
+      stopRecording()
+      throw error
+    }
 
     isRecording = true
     print("Apple Speech recognition started")
   }
 
+  /// Starts a fresh recognition task on the running capture, after the last
+  /// one ended by itself. Clears `transcribedText`, like `startRecording()`;
+  /// the session has committed the old run's text before calling this.
+  func restartRecognition() throws {
+    guard isRecording else {
+      throw NSError(domain: "AppleSpeech", code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Apple Speech is not recording."])
+    }
+    let recognizer = try availableRecognizer()
+    transcribedText = ""
+    errorMessage = nil
+    beginRecognitionTask(with: recognizer)
+    print("Apple Speech recognition restarted")
+  }
+
   func stopRecording() {
+    // Drop whatever the cancelled task still reports.
+    runID += 1
+    tapTarget.set(nil)
+
     // Stop audio engine
     if audioEngine.isRunning {
       audioEngine.stop()
-      audioEngine.inputNode.removeTap(onBus: 0)
     }
+    audioEngine.inputNode.removeTap(onBus: 0)
 
     // End recognition request
     recognitionRequest?.endAudio()
@@ -190,10 +168,100 @@ class AppleSpeechRecognizer {
     #endif
   }
 
-  // MARK: - Audio Processing
+  // MARK: - Recognition task
 
-  private func calculateAmplitude(from buffer: AVAudioPCMBuffer) -> Float {
-    AudioSamples.meterLevel(from: buffer)
+  private func availableRecognizer() throws -> SFSpeechRecognizer {
+    guard let recognizer = speechRecognizer, recognizer.isAvailable else {
+      throw NSError(
+        domain: "AppleSpeech",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "Apple Speech is not available right now."]
+      )
+    }
+    return recognizer
+  }
+
+  private func beginRecognitionTask(with recognizer: SFSpeechRecognizer) {
+    runID += 1
+    let run = runID
+
+    let request = SFSpeechAudioBufferRecognitionRequest()
+    request.shouldReportPartialResults = true
+    request.taskHint = .unspecified
+    request.contextualStrings = contextualStrings
+
+    // Use on-device recognition if available (simulator doesn't support it)
+    if recognizer.supportsOnDeviceRecognition {
+      request.requiresOnDeviceRecognition = true
+      print("Using on-device speech recognition")
+    } else {
+      request.requiresOnDeviceRecognition = false
+      print("Using server-based speech recognition (on-device not available)")
+    }
+
+    recognitionRequest = request
+    tapTarget.set(request)
+    recognitionTask = recognizer.recognitionTask(
+      with: request, resultHandler: Self.makeResultHandler(owner: self, run: run))
+  }
+
+  /// Main-actor half of the result handler.
+  private func handleRecognition(run: Int, text: String?, isFinal: Bool, error: String?) {
+    guard run == runID, isRecording else { return }
+    if let text { transcribedText = text }
+    guard isFinal || error != nil else { return }
+
+    // This task is over. Capture keeps running so the session can restart.
+    runID += 1
+    tapTarget.set(nil)
+    recognitionRequest = nil
+    recognitionTask = nil
+    if let error {
+      errorMessage = error
+      print("Recognition error: \(error)")
+      onRunEnded?(.failed(message: error))
+    } else {
+      onRunEnded?(.finished)
+    }
+  }
+
+  private func appendLevel(_ level: Float) {
+    guard isRecording else { return }
+    audioLevels.append(level)
+    if audioLevels.count > maxAudioLevels {
+      audioLevels.removeFirst()
+    }
+  }
+
+  // MARK: - Callbacks off the main thread
+
+  /// Runs on Speech's callback queue. Extracts plain values there, then hops.
+  nonisolated private static func makeResultHandler(
+    owner: AppleSpeechRecognizer, run: Int
+  ) -> (SFSpeechRecognitionResult?, Error?) -> Void {
+    { [weak owner] result, error in
+      let text = result?.bestTranscription.formattedString
+      let isFinal = result?.isFinal ?? false
+      let message = error?.localizedDescription
+      DispatchQueue.main.async {
+        MainActor.assumeIsolated {
+          owner?.handleRecognition(run: run, text: text, isFinal: isFinal, error: message)
+        }
+      }
+    }
+  }
+
+  /// Runs on the audio render thread.
+  nonisolated private static func makeTap(
+    feeding target: SpeechRequestFeed, owner: AppleSpeechRecognizer
+  ) -> AVAudioNodeTapBlock {
+    { [weak owner] buffer, _ in
+      target.append(buffer)
+      let level = AudioSamples.meterLevel(from: buffer)
+      DispatchQueue.main.async {
+        MainActor.assumeIsolated { owner?.appendLevel(level) }
+      }
+    }
   }
 
   // MARK: - Language Support
@@ -218,7 +286,7 @@ class AppleSpeechRecognizer {
   /// locale rather than silently staying on US English — which is what this
   /// used to do unconditionally, despite the store copy advertising
   /// multi-language support for this engine.
-  static func preferredLocale(for language: TranscriptionLanguage = .selected) -> Locale {
+  nonisolated static func preferredLocale(for language: TranscriptionLanguage = .selected) -> Locale {
     let supported = SFSpeechRecognizer.supportedLocales()
 
     func match(_ code: String) -> Locale? {

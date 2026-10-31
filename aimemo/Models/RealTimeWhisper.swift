@@ -34,7 +34,12 @@ final class RealTimeWhisper {
 
   // MARK: - Observable state
 
-  private(set) var state: State = .idle
+  private(set) var state: State = .idle {
+    didSet {
+      let live = state != .idle
+      if live != (oldValue != .idle) { keepScreenAwake(live) }
+    }
+  }
   /// True while a recording is in progress; drives the record button.
   var canStop: Bool { state == .recording || state == .paused }
   /// True while the final flush is running.
@@ -58,6 +63,9 @@ final class RealTimeWhisper {
   var elapsedTime: TimeInterval = 0
   private(set) var detectedLanguageCode: String?
   private(set) var errorMessage: String?
+  /// True when a running take has had no audio for a few seconds. The
+  /// screen shows it, so "Recording" over a dead microphone is visible.
+  private(set) var noAudio = false
 
   /// "A model is loaded." Nothing more — the old flag doubled as a
   /// transcription mutex and could wedge itself false forever.
@@ -87,6 +95,12 @@ final class RealTimeWhisper {
   private var elapsedBase: TimeInterval = 0
   private var segmentStart: Date?
   private var timerTask: Task<Void, Never>?
+  private var silenceWatch = SilenceWatch()
+
+  /// Auto-Lock suspends the app and capture with it, and there is no
+  /// background audio mode yet (2.6 step 2), so the screen stays on while a
+  /// take is live. Injected so tests don't flip the real setting.
+  private let keepScreenAwake: (Bool) -> Void
 
   /// Kept alive for the recorder's lifetime; owns the notification observers.
   private var liveSessionEvents: AudioSessionEvents?
@@ -99,9 +113,16 @@ final class RealTimeWhisper {
     makeSession: (
       (TranscriptionEngine, TranscriptionOptions, WhisperContext?) -> LiveTranscriptionSession
     )? = nil,
-    sessionEvents: AsyncStream<AudioSessionEvent>? = nil
+    sessionEvents: AsyncStream<AudioSessionEvent>? = nil,
+    noAudioAfter: TimeInterval = 5,
+    keepScreenAwake: ((Bool) -> Void)? = nil
   ) {
     self.loader = loader
+    self.keepScreenAwake = keepScreenAwake ?? { awake in
+      #if os(iOS)
+      UIApplication.shared.isIdleTimerDisabled = awake
+      #endif
+    }
     self.makeSession = makeSession ?? { engine, options, context in
       switch engine {
       case .whisper:
@@ -111,6 +132,8 @@ final class RealTimeWhisper {
         return AppleSpeechTranscriptionSession(options: options)
       }
     }
+
+    silenceWatch.limit = noAudioAfter
 
     let selected = WhisperModel.selected
     do {
@@ -178,6 +201,8 @@ final class RealTimeWhisper {
     errorMessage = nil
     pauseReason = nil
     audioLevels = []
+    noAudio = false
+    silenceWatch.reset(at: Date())
     activeOptions = .current
     elapsedBase = 0
     recordingStartTime = Date()
@@ -208,9 +233,19 @@ final class RealTimeWhisper {
     guard state == .recording else { return }
     state = .paused
     pauseReason = reason
+    noAudio = false
     stopTimer()
     elapsedBase += Date().timeIntervalSince(segmentStart ?? Date())
     await session?.pause()
+  }
+
+  /// The app left the screen. Without a background audio mode iOS suspends
+  /// it and capture stops, so pause now and say so, instead of coming back
+  /// to a "Recording" pill with a gap in the audio and in the timer.
+  func enterBackground() async {
+    guard state == .recording else { return }
+    await pause(reason: .background)
+    errorMessage = "Recording paused when you left the app. Tap Resume to continue."
   }
 
   func resume() async {
@@ -218,6 +253,8 @@ final class RealTimeWhisper {
     do {
       try await session.resume()
       segmentStart = Date()
+      silenceWatch.reset(at: Date())
+      noAudio = false
       state = .recording
       pauseReason = nil
       errorMessage = nil
@@ -270,6 +307,7 @@ final class RealTimeWhisper {
     let wasRecording = state == .recording
     state = .stopping
     pauseReason = nil
+    noAudio = false
     stopTimer()
     // Paused time is already folded into elapsedBase; adding it twice would
     // inflate the saved duration.
@@ -296,6 +334,7 @@ final class RealTimeWhisper {
   func cancel() async {
     guard state != .idle else { return }
     state = .stopping
+    noAudio = false
     stopTimer()
     await session?.cancel()
     await teardown()
@@ -320,6 +359,8 @@ final class RealTimeWhisper {
           self.provisionalText = transcript.provisional
           self.provisionalConfidence = transcript.provisionalConfidence
         case .level(let level):
+          self.silenceWatch.record(level: level, at: Date())
+          if self.noAudio, !self.silenceWatch.isSilent(at: Date()) { self.noAudio = false }
           self.audioLevels.append(level)
           if self.audioLevels.count > self.maxAudioLevels {
             self.audioLevels.removeFirst()
@@ -331,6 +372,11 @@ final class RealTimeWhisper {
             self.detectedLanguageCode = code
           }
         case .failed(let message):
+          self.errorMessage = message
+        case .stopped(let message):
+          // The engine gave up by itself. Stop for real (flush, save) rather
+          // than keep a "Recording" pill over nothing.
+          await self.stopRecord()
           self.errorMessage = message
         }
       }
@@ -345,7 +391,12 @@ final class RealTimeWhisper {
       while !Task.isCancelled {
         try? await Task.sleep(for: .milliseconds(200))
         guard let self, self.state == .recording, let start = self.segmentStart else { break }
-        self.elapsedTime = self.elapsedBase + Date().timeIntervalSince(start)
+        let now = Date()
+        self.elapsedTime = self.elapsedBase + now.timeIntervalSince(start)
+        // Checked here too, not only per level: no levels at all is the
+        // clearest sign capture has died.
+        let silent = self.silenceWatch.isSilent(at: now)
+        if silent != self.noAudio { self.noAudio = silent }
       }
     }
   }

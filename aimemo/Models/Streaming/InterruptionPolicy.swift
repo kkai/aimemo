@@ -12,6 +12,9 @@ import Foundation
 enum PauseReason: Equatable, Sendable {
   case user
   case interruption
+  /// The app left the screen (locked, or switched away) and iOS suspends it.
+  /// Not undone by an interruption ending; the user resumes.
+  case background
 }
 
 /// Pure decision table, so every case is tested without audio hardware.
