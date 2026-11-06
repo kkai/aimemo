@@ -66,8 +66,15 @@ final class ScriptedTranscriptionSession: LiveTranscriptionSession {
     continuation.finish()
   }
 
+  /// Words arrive every 300 ms, so the script has a timeline of its own.
+  private static let secondsPerWord: TimeInterval = 0.3
+
   private func commitOpenWords() {
-    transcript.commit(words[committedUpTo..<spoken].joined(separator: " "))
+    let text = words[committedUpTo..<spoken].joined(separator: " ")
+    let segment = TranscriptSegment(text: text,
+                                    start: Double(committedUpTo) * Self.secondsPerWord,
+                                    end: Double(spoken) * Self.secondsPerWord)
+    transcript.commit(text, segments: text.isEmpty ? [] : [segment])
     committedUpTo = spoken
   }
 

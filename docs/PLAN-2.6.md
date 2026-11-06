@@ -41,6 +41,11 @@ simulator: import at 66% with Cancel, the finished screen, the Share menu, an SR
 sheet, Pro History with the imported file, and the summary card on iOS 26.5. Step 2 (background
 recording) and step 6 (listing, screenshots, release) are still open. Nothing is pushed or uploaded.
 
+**Status, 2026-11-07:** 2.6 is staged for review on both SKUs (build 2, `docs/SUBMISSION-2.6.md`).
+Step 6 is done: version 2.6 (2), listing copy, review notes, iPhone screenshots, site copy
+committed on `gh-pages`. Step 2 (background recording) is deferred to 2.7, since it needs the
+device Metal spike first; the listing makes no lock-screen claim. `main` is at the tag `v2.6`.
+
 ## Why
 
 2.5 made long recordings work: windowed decoding gives flat memory and live
@@ -63,7 +68,7 @@ stored audio is 2.7 (see "Next").
 
 ## Scope
 
-1. Recording keeps going with the screen locked.
+1. ~~Recording keeps going with the screen locked.~~ Deferred to 2.7 (needs the device spike).
 2. Interruptions (calls, Siri, alarms, route changes) pause and resume cleanly.
 3. Pause/Resume button, plus the Apple Speech pause fix.
 4. Accessibility pass with an audit test target.
