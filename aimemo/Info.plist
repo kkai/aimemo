@@ -47,6 +47,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access to record speech for voice-to-text transcription.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
