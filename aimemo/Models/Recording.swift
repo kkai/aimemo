@@ -24,12 +24,22 @@ final class Recording {
   // On-device AI summary (Foundation Models, iOS 26+)
   var summary: String?
 
+  /// JSON of `[TranscriptSegment]`. Stored as data rather than a Codable
+  /// array so the 2.5 store migrates with nothing but a new optional column.
+  var segmentsData: Data?
+
+  /// For transcripts made from a file: the file's name, shown in the detail
+  /// view and used as the default title.
+  var sourceFileName: String?
+
   init(
     timestamp: Date,
     duration: TimeInterval,
     transcriptText: String,
     title: String? = nil,
-    summary: String? = nil
+    summary: String? = nil,
+    segments: [TranscriptSegment] = [],
+    sourceFileName: String? = nil
   ) {
     self.id = UUID()
     self.timestamp = timestamp
@@ -37,6 +47,25 @@ final class Recording {
     self.transcriptText = transcriptText
     self.title = title
     self.summary = summary
+    self.segmentsData = segments.isEmpty ? nil : try? JSONEncoder().encode(segments)
+    self.sourceFileName = sourceFileName
+  }
+
+  /// Timed pieces of the transcript; empty for 2.5 recordings and for engines
+  /// that gave no timings.
+  var segments: [TranscriptSegment] {
+    get {
+      guard let segmentsData else { return [] }
+      return (try? JSONDecoder().decode([TranscriptSegment].self, from: segmentsData)) ?? []
+    }
+    set { segmentsData = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue) }
+  }
+
+  /// Everything the exporters need, in one value.
+  var exportable: TranscriptExport {
+    TranscriptExport(title: title, date: timestamp, duration: duration,
+                     text: transcriptText, segments: segments, summary: summary,
+                     sourceFileName: sourceFileName)
   }
 
   // MARK: - Computed Properties

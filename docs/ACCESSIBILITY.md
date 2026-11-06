@@ -111,6 +111,19 @@ friction, 🟢 polish.
   they are Pro-only;
 - **Pro app audits:** all 10 pass.
 
+2026-11-06, same destination: 276 unit tests pass; 10 free audits pass and 2
+skip. New screens: **importing** (`testImporting`, driven by
+`-uiTestImportFile <path>`, with the same live-content tolerance as a running
+take because the transcript grows under the audit, plus one more: the audit
+sometimes reports "Hit area is too small" on the elapsed label while a file is
+decoding, because the label's frame changes between its two captures when the
+language badge appears; the label is static text, so this is accepted for
+labels beginning with "Elapsed" under the same live-content flag) and the **Share menu**
+(`testFinishedShareMenuOffersTextAndMarkdown`). New labels: "Transcribe a
+file" (header), "Cancel transcription" (controls), "Share" with the hint
+"Share as text, Markdown or subtitles", and the announcements "Transcribing
+the file" / "File transcribed. The transcript is ready."
+
 ## Accessibility Nutrition Labels (for App Store Connect)
 
 Claimable once 2.6 ships, on both SKUs:

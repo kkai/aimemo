@@ -53,8 +53,10 @@ class SummaryGenerator {
           self.isGenerating = false
         }
       } catch {
+        let message = Self.plainMessage(for: error)
+        print("Summary failed: \(error)")
         await MainActor.run {
-          self.error = error.localizedDescription
+          self.error = message
           self.isGenerating = false
         }
       }
@@ -70,6 +72,34 @@ class SummaryGenerator {
       self.isGenerating = false
     }
     #endif
+  }
+
+  /// A sentence for the alert. The framework's own description is
+  /// "The operation couldn't be completed. (…GenerationError error -1.)".
+  nonisolated static func plainMessage(for error: Error) -> String {
+    #if canImport(FoundationModels)
+    if #available(iOS 26.0, *), let generation = error as? LanguageModelSession.GenerationError {
+      switch generation {
+      case .exceededContextWindowSize:
+        return "This transcript is too long to summarize in one go."
+      case .guardrailViolation, .refusal:
+        return "Apple Intelligence declined to summarize this transcript."
+      case .unsupportedLanguageOrLocale:
+        return "Apple Intelligence does not support this language yet."
+      case .assetsUnavailable:
+        return "The on-device model is not ready. Try again in a moment."
+      case .rateLimited:
+        return "Too many requests in a row. Try again in a moment."
+      case .concurrentRequests:
+        return "A summary is already being written."
+      case .decodingFailure, .unsupportedGuide:
+        return "The model's answer could not be read. Try again."
+      @unknown default:
+        return "The on-device model could not write a summary. Try again."
+      }
+    }
+    #endif
+    return "The on-device model could not write a summary. Try again."
   }
 
   func clearSummary() {

@@ -29,11 +29,26 @@ enum LaunchOptions {
     #endif
   }
 
+  /// `-uiTestImportFile <path>`: transcribe this audio file as soon as the
+  /// recording screen appears, so the importing screen can be audited and
+  /// screenshotted without a file picker. The path is on the host; the
+  /// simulator shares its file system.
+  static var importFileAtLaunch: URL? {
+    #if DEBUG
+    let arguments = ProcessInfo.processInfo.arguments
+    guard let index = arguments.firstIndex(of: "-uiTestImportFile"),
+          index + 1 < arguments.count else { return nil }
+    return URL(fileURLWithPath: arguments[index + 1])
+    #else
+    return nil
+    #endif
+  }
+
   /// The app's store. Under any UI-test argument it is in memory, so a test
   /// never reads or writes the history on the simulator.
   @MainActor
   static func makeModelContainer() -> ModelContainer {
-    let inMemory = usesScriptedSession || seedsHistory
+    let inMemory = usesScriptedSession || seedsHistory || importFileAtLaunch != nil
     let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
     do {
       let container = try ModelContainer(for: Recording.self, configurations: configuration)

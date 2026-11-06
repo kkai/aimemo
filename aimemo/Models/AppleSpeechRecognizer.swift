@@ -25,6 +25,8 @@ import AVFoundation
 @Observable
 final class AppleSpeechRecognizer {
   var transcribedText = ""
+  /// Run-relative timings of `transcribedText`, from `SFTranscription.segments`.
+  var segments: [TranscriptSegment] = []
   var isRecording = false
   var authorizationStatus: SFSpeechRecognizerAuthorizationStatus = .notDetermined
   var errorMessage: String?
@@ -89,6 +91,7 @@ final class AppleSpeechRecognizer {
     }
 
     transcribedText = ""
+    segments = []
     errorMessage = nil
 
     #if os(iOS)
@@ -128,6 +131,7 @@ final class AppleSpeechRecognizer {
     }
     let recognizer = try availableRecognizer()
     transcribedText = ""
+    segments = []
     errorMessage = nil
     beginRecognitionTask(with: recognizer)
     print("Apple Speech recognition restarted")
@@ -206,9 +210,13 @@ final class AppleSpeechRecognizer {
   }
 
   /// Main-actor half of the result handler.
-  private func handleRecognition(run: Int, text: String?, isFinal: Bool, error: String?) {
+  private func handleRecognition(run: Int, text: String?, segments: [TranscriptSegment],
+                                 isFinal: Bool, error: String?) {
     guard run == runID, isRecording else { return }
-    if let text { transcribedText = text }
+    if let text {
+      transcribedText = text
+      self.segments = segments
+    }
     guard isFinal || error != nil else { return }
 
     // This task is over. Capture keeps running so the session can restart.
@@ -241,11 +249,16 @@ final class AppleSpeechRecognizer {
   ) -> (SFSpeechRecognitionResult?, Error?) -> Void {
     { [weak owner] result, error in
       let text = result?.bestTranscription.formattedString
+      // Plain values only: SFTranscriptionSegment is not Sendable.
+      let segments = (result?.bestTranscription.segments ?? []).map {
+        TranscriptSegment(text: $0.substring, start: $0.timestamp, end: $0.timestamp + $0.duration)
+      }
       let isFinal = result?.isFinal ?? false
       let message = error?.localizedDescription
       DispatchQueue.main.async {
         MainActor.assumeIsolated {
-          owner?.handleRecognition(run: run, text: text, isFinal: isFinal, error: message)
+          owner?.handleRecognition(run: run, text: text, segments: segments,
+                                   isFinal: isFinal, error: message)
         }
       }
     }

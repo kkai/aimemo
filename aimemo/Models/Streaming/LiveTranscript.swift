@@ -15,6 +15,9 @@ import Foundation
 /// only its own window, so joining them is the app's job.
 struct LiveTranscript: Equatable, Sendable {
   private(set) var committed: String = ""
+  /// Timed pieces of `committed`, in order. Empty when the engine gave no
+  /// timings; the text is then still complete, only the subtitle export is off.
+  private(set) var committedSegments: [TranscriptSegment] = []
   private(set) var provisional: String = ""
   /// Mean token probability of the provisional tail, 0…1.
   private(set) var provisionalConfidence: Float = 0
@@ -26,10 +29,11 @@ struct LiveTranscript: Equatable, Sendable {
   var isEmpty: Bool { committed.isEmpty && provisional.isEmpty }
 
   /// Appends a decoded window and clears the provisional tail it replaces.
-  mutating func commit(_ text: String) {
+  mutating func commit(_ text: String, segments: [TranscriptSegment] = []) {
     let clean = Self.normalize(text)
     if !clean.isEmpty {
       committed = Self.join(committed, clean)
+      committedSegments.append(contentsOf: segments)
     }
     provisional = ""
     provisionalConfidence = 0

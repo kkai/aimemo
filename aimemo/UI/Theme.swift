@@ -159,10 +159,14 @@ enum RecordingStatus: Equatable {
   /// The final window is being decoded; on a long take this is seconds.
   case finishing
   case complete
+  /// A file is being decoded; the value is 0…1.
+  case importing(Double)
 
   var label: String {
     switch self {
     case .recording: return "Recording"
+    case .importing(let progress):
+      return "Transcribing file \(Int((progress * 100).rounded()))%"
     case .paused(let reason):
       switch reason {
       case .interruption: return "Paused by a call or alarm"
@@ -177,7 +181,7 @@ enum RecordingStatus: Equatable {
   var tint: Color {
     switch self {
     case .recording: return Theme.danger
-    case .paused, .finishing: return Theme.accent
+    case .paused, .finishing, .importing: return Theme.accent
     case .complete: return Theme.success
     }
   }
@@ -188,6 +192,7 @@ enum RecordingStatus: Equatable {
     case .paused: return "pause.fill"
     case .finishing: return "ellipsis"
     case .complete: return "checkmark.circle"
+    case .importing: return "doc.text"
     }
   }
 }

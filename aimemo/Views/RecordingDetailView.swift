@@ -13,7 +13,6 @@ struct RecordingDetailView: View {
   @Environment(\.modelContext) private var modelContext
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var viewModel = RecordingsViewModel()
-  @State private var showingShareSheet = false
   @State private var copiedToClipboard = false
   @State private var summaryGenerator = SummaryGenerator()
   @State private var showingSummaryError = false
@@ -37,6 +36,13 @@ struct RecordingDetailView: View {
           }
           .font(.subheadline)
           .foregroundStyle(Theme.textSecondary)
+
+          if let source = recording.sourceFileName {
+            Label(source, systemImage: "doc")
+              .font(.subheadline)
+              .foregroundStyle(Theme.textSecondary)
+              .accessibilityLabel("Transcribed from \(source)")
+          }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
@@ -108,9 +114,7 @@ struct RecordingDetailView: View {
           ActionButton(title: "Copy to Clipboard", systemName: "doc.on.doc", tint: Theme.accent) {
             copyToClipboard()
           }
-          ActionButton(title: "Share", systemName: "square.and.arrow.up", tint: Theme.accent) {
-            shareRecording()
-          }
+          ShareTranscriptMenu(export: recording.exportable)
           ActionButton(title: "Edit Title", systemName: "pencil", tint: Theme.textSecondary) {
             viewModel.editRecording(recording)
           }
@@ -136,9 +140,6 @@ struct RecordingDetailView: View {
     }
     .sheet(isPresented: $viewModel.isShowingEditSheet) {
       EditRecordingSheet(recording: recording)
-    }
-    .sheet(isPresented: $showingShareSheet) {
-      ShareSheet(items: viewModel.shareRecording(recording))
     }
     .alert("Summary Failed", isPresented: $showingSummaryError) {
       Button("OK", role: .cancel) {}
@@ -174,9 +175,6 @@ struct RecordingDetailView: View {
     }
   }
 
-  private func shareRecording() {
-    showingShareSheet = true
-  }
 }
 
 #Preview {

@@ -28,5 +28,8 @@ protocol LiveTranscriptionSession: AnyObject {
   /// Flushes everything and returns the complete final text. Callers must await
   /// this before persisting.
   func finish() async -> String
+  /// Timed pieces of the finished transcript, for subtitle export. Valid after
+  /// `finish()`; empty when the engine reported no timings.
+  func finalSegments() async -> [TranscriptSegment]
   func cancel() async
 }

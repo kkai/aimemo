@@ -73,6 +73,10 @@ struct TranscriptionWindow: Sendable {
     let samples: [Float]
     /// True captured duration, before any padding.
     let duration: TimeInterval
+    /// Seconds of ingested audio before this window's first speech frame, so
+    /// whisper's window-relative segment times can be placed on the take's
+    /// timeline. Discarded leading silence counts; nothing is lost.
+    let start: TimeInterval
     let reason: Reason
   }
 
@@ -92,6 +96,10 @@ struct TranscriptionWindow: Sendable {
   private var lastSpeechEnd = 0
   /// True once any frame in this window has been classified as speech.
   private var sawSpeech = false
+  /// Every sample ever absorbed, speech or silence. The clock for `Closed.start`.
+  private var ingestedSamples = 0
+  /// `ingestedSamples` when this window's first speech frame arrived.
+  private var windowStartSample = 0
   /// Adapts upward in a noisy room. Deliberately starts at the absolute floor
   /// and moves only on frames already judged quiet: letting it track speech
   /// energy creates a feedback loop that reclassifies quiet speech as silence.
@@ -117,6 +125,8 @@ struct TranscriptionWindow: Sendable {
   var trailingSilence: TimeInterval {
     Double(trailingSilenceSamples) / policy.sampleRate
   }
+  /// Seconds of audio ingested so far, including discarded silence.
+  var ingestedDuration: TimeInterval { Double(ingestedSamples) / policy.sampleRate }
 
   // MARK: - Ingestion
 
@@ -161,11 +171,14 @@ struct TranscriptionWindow: Sendable {
       noiseFloor += (energy - noiseFloor) * 0.05
     }
 
+    ingestedSamples += frame.count
+
     // A window never starts on silence: leading quiet is discarded so that
     // pure-silence stretches never accumulate and never reach whisper.
     guard isSpeech || sawSpeech else { return }
 
     if isSpeech {
+      if !sawSpeech { windowStartSample = ingestedSamples - frame.count }
       samples.append(contentsOf: frame)
       sawSpeech = true
       trailingSilenceSamples = 0
@@ -211,6 +224,8 @@ struct TranscriptionWindow: Sendable {
                                          count: policy.minimumSamples - payload.count))
     }
 
+    let start = Double(windowStartSample) / policy.sampleRate
+
     samples.removeAll(keepingCapacity: true)
     trailingSilenceSamples = 0
     lastSpeechEnd = 0
@@ -218,7 +233,7 @@ struct TranscriptionWindow: Sendable {
 
     absorbPending()
 
-    return Closed(samples: payload, duration: capturedDuration, reason: reason)
+    return Closed(samples: payload, duration: capturedDuration, start: start, reason: reason)
   }
 
   /// Decision at stop or pause. Drains `pending` first — including a final
@@ -232,6 +247,7 @@ struct TranscriptionWindow: Sendable {
     if !pending.isEmpty, samples.count < policy.maximumSamples {
       // Residue shorter than a frame. Keep it only if this window already has
       // speech; otherwise it is trailing room tone and goes nowhere.
+      ingestedSamples += pending.count
       if sawSpeech {
         samples.append(contentsOf: pending)
         lastSpeechEnd = samples.count

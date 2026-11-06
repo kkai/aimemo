@@ -5,6 +5,42 @@ Both have been on 2.5 since 2026-09-17.
 
 **Status, 2026-10-22:** steps 0, 1, 3 and 4 are built and tested on this branch (`f3b109d`, `5b73810`, `d2815a3`, `8b5b2bf`). Steps 2 and 5 are next and start with the device spike. Nothing is pushed or uploaded.
 
+**Status, 2026-11-06 (branch `feature/2.6-export-intents-import`, on top of `fix/silent-stop`):**
+step 5 is built, and three items were pulled forward from "Next" into 2.6, all in both SKUs:
+
+- **Transcribe a file** (step 5): `AudioFileReader` (AVAssetReader, 16 kHz mono float),
+  `StreamingTranscriber.feed` (back-pressured), `RealTimeWhisper.transcribe(file:)` with the
+  `.importing` state, a progress pill and Cancel. Entry points: the "Transcribe a file" header
+  button (`fileImporter`), `CFBundleDocumentTypes` for `public.audio` and `public.movie` in both
+  plists (so the app is in every share sheet as "Open in ai-Memo", via `onOpenURL`), and the
+  "Transcribe a File" Shortcuts action. Pro saves imports with the file name as the title
+  (`Recording.sourceFileName`), unless the name is generic ("New Recording 12"), when the
+  auto-title runs. Whisper only, as planned.
+- **Timings and export.** Segment times now survive the pipeline: `TranscriptionWindow.Closed.start`
+  puts whisper's window-relative `t0/t1` on the take's timeline, Apple Speech's per-run word
+  timings are offset by the recorded time and merged into phrases, and `LiveTranscript` keeps
+  `committedSegments` beside the text. `Recording.segmentsData` stores them (JSON; 2.5 rows
+  migrate with a new optional column). `TranscriptExport` renders Markdown (stamped paragraphs,
+  summary first), SRT and WebVTT; the Share button is now a menu (text, Markdown, and the
+  subtitle formats when there are timings) on the recording screen and in Detail.
+- **Summaries on the recording screen.** `SummaryCard` under a finished transcript, both SKUs;
+  Pro also stores it with the saved recording (`RealTimeWhisper.lastSaved`). Generation errors
+  are mapped to sentences. The simulator reports the model available but generation fails with
+  `promptTemplateNotFound` from the host inference provider, so the positive path is still
+  unverified; it needs an Apple Intelligence device.
+- **App Intents.** "Start a Memo" (opens the app; the recording screen starts the take once the
+  scene is active), "Stop the Memo" (runs in place and returns the transcript to the shortcut),
+  "Transcribe a File", with Siri phrases in `MemoShortcuts`. The Action button and Control Center
+  reach them through Shortcuts; a native Control Center control needs a widget extension, later.
+- **Fix:** after every take the transcript card collapsed to two lines and lost its buttons. The
+  idle placeholder in the controls row was an unconstrained `Color.clear`, so the VStack split the
+  screen between it and the transcript. Pre-existing on `release-2.6`.
+
+Tests: 276 unit tests, 12 UI audits (new: the importing screen, the share menu). Checked in the
+simulator: import at 66% with Cancel, the finished screen, the Share menu, an SRT in the share
+sheet, Pro History with the imported file, and the summary card on iOS 26.5. Step 2 (background
+recording) and step 6 (listing, screenshots, release) are still open. Nothing is pushed or uploaded.
+
 ## Why
 
 2.5 made long recordings work: windowed decoding gives flat memory and live
@@ -35,8 +71,8 @@ stored audio is 2.7 (see "Next").
 
 Out of scope for 2.6:
 - stored audio and playback
-- SRT/VTT export
-- App Intents, Live Activity, Control Center
+- ~~SRT/VTT export~~ (built 2026-11-06)
+- ~~App Intents~~ (built 2026-11-06), Live Activity, a native Control Center control
 - interface localization
 - iCloud sync
 - the whisper.cpp bump and large-v3-turbo
@@ -222,7 +258,9 @@ reader from step 5 are both groundwork for it.
 - AAC on save.
 - Playback where tapping a word jumps there (segment timestamps already exist).
 - Re-transcribe with a bigger model.
-- SRT/VTT export.
+- ~~SRT/VTT export.~~ Done in 2.6.
 
-After that, App Intents (Action Button, Control Center) plus a Live Activity
-that can stop a locked recording.
+After that, ~~App Intents (Action Button, Control Center)~~ (the intents are in 2.6; a
+Control Center control still needs a widget extension) plus a Live Activity that can stop
+a locked recording. Summaries need a map-reduce pass for transcripts longer than the
+model's context window; today the alert says the transcript is too long.

@@ -48,6 +48,16 @@ struct ContentView: View {
       // Inject modelContext into audioProcessor for auto-save
       audioProcessor.modelContext = modelContext
     }
+    // "Open in ai-Memo" from Files, Voice Memos, Mail or any share sheet:
+    // the document types in Info.plist bring the file here.
+    .onOpenURL { url in
+      do {
+        let file = try ImportedFile.stage(url)
+        Task { await audioProcessor.transcribe(file: file) }
+      } catch {
+        audioProcessor.report(error.localizedDescription)
+      }
+    }
   }
 }
 

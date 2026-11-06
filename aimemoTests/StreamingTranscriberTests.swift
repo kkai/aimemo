@@ -362,5 +362,32 @@ struct StreamingTranscriberTests {
     #expect(await fake.callCount == 3, "no retry should have been needed")
     #expect(final == "eins. zwei. drei.")
   }
-}
 
+  // MARK: - Timings
+
+  @Test func committedSegmentsSitOnTheRecordingTimeline() async {
+    let fake = FakeWindowTranscriber(texts: ["one.", "two."])
+    let core = makeCore(fake)
+    await core.start()
+    feed(core, cycle + cycle)
+    _ = await core.finish()
+
+    let segments = await core.currentTranscript.committedSegments
+    #expect(segments.map(\.text) == ["one.", "two."])
+    // The fake reports 0…1 s per window; the second window began after the
+    // first burst and its 0.8 s pause.
+    #expect(abs(segments[0].start) < 0.05)
+    #expect(abs(segments[1].start - 2.8) < 0.1)
+  }
+
+  @Test func feedIsBackPressuredAndCommitsLikeIngest() async {
+    let fake = FakeWindowTranscriber(texts: ["one.", "two."])
+    let core = makeCore(fake)
+    await core.feed(cycle)
+    // Fed, not pumped: the window has already been decoded when feed returns.
+    #expect(await fake.callCount == 1)
+    await core.feed(cycle)
+    let final = await core.finish()
+    #expect(final == "one. two.")
+  }
+}

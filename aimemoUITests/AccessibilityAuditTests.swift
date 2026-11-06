@@ -61,6 +61,11 @@ final class AccessibilityAuditTests: XCTestCase {
       if self.acceptLiveContentFalsePositives {
         if issue.auditType == .contrast { return true }
         if issue.auditType == .elementDetection, issue.element == nil { return true }
+        // The elapsed label is static text, so the hit-area rule does not
+        // apply to it; the audit reports it only when its frame changed
+        // between captures (the time ticked, or the language badge appeared
+        // mid-import), which is the same moving-content artefact as above.
+        if issue.auditType == .hitRegion, issue.element?.label.hasPrefix("Elapsed") == true { return true }
       }
       return false
     }
@@ -127,6 +132,63 @@ final class AccessibilityAuditTests: XCTestCase {
     startRecording()
     acceptLiveContentFalsePositives = true
     try audit()
+  }
+
+  func testFinishedShareMenuOffersTextAndMarkdown() throws {
+    launch()
+    startRecording()
+    app.buttons["Stop recording"].tap()
+    XCTAssertTrue(app.staticTexts["Complete"].waitForExistence(timeout: 10))
+    app.buttons["Share"].firstMatch.tap()
+    XCTAssertTrue(app.buttons["Share Text"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["Markdown"].exists)
+    // The scripted session reports no timings, so no subtitle formats.
+    XCTAssertFalse(app.buttons["SRT subtitles"].exists)
+  }
+
+  // MARK: - Transcribing a file
+
+  /// A minute of the English fixture, so the importing screen stands still
+  /// long enough to audit. Written to the host's temporary folder, which the
+  /// simulator can read.
+  private static func longFixture() throws -> URL {
+    let source = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent().deletingLastPathComponent()
+      .appendingPathComponent("aimemoTests/Resources/audio/en.wav")
+    let bytes = [UInt8](try Data(contentsOf: source))
+    func u32(_ i: Int) -> Int {
+      Int(bytes[i]) | Int(bytes[i + 1]) << 8 | Int(bytes[i + 2]) << 16 | Int(bytes[i + 3]) << 24
+    }
+    var i = 12, payload: [UInt8] = []
+    while i + 8 <= bytes.count {
+      let id = String(bytes: bytes[i..<i + 4], encoding: .ascii) ?? ""
+      let size = u32(i + 4)
+      if id == "data" { payload = Array(bytes[(i + 8)..<min(i + 8 + size, bytes.count)]); break }
+      i += 8 + size + (size & 1)
+    }
+    let data = [UInt8](repeating: 0, count: 0) + Array((0..<13).flatMap { _ in payload })
+    func le32(_ v: Int) -> [UInt8] { [UInt8(v & 0xff), UInt8(v >> 8 & 0xff), UInt8(v >> 16 & 0xff), UInt8(v >> 24 & 0xff)] }
+    func le16(_ v: Int) -> [UInt8] { [UInt8(v & 0xff), UInt8(v >> 8 & 0xff)] }
+    var wav: [UInt8] = Array("RIFF".utf8) + le32(36 + data.count) + Array("WAVE".utf8)
+    wav += Array("fmt ".utf8) + le32(16) + le16(1) + le16(1) + le32(16_000) + le32(32_000) + le16(2) + le16(16)
+    wav += Array("data".utf8) + le32(data.count) + data
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("aimemo-ui-long.wav")
+    try Data(wav).write(to: url)
+    return url
+  }
+
+  func testImporting() throws {
+    let file = try Self.longFixture()
+    app.launchArguments += ["-uiTestImportFile", file.path]
+    launch()
+    XCTAssertTrue(app.buttons["Cancel transcription"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Transcribing file'")).firstMatch.exists)
+    // The transcript grows while whisper decodes; same tolerance as a live take.
+    acceptLiveContentFalsePositives = true
+    try audit()
+    app.buttons["Cancel transcription"].tap()
+    XCTAssertTrue(app.buttons["Transcribe a file"].waitForExistence(timeout: 10))
+    XCTAssertFalse(app.buttons["Cancel transcription"].exists)
   }
 
   // MARK: - Settings

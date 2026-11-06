@@ -30,6 +30,9 @@ final class RealTimeWhisper {
     /// Flushing the final window. A second tap must not start a new recording
     /// on top of the old one.
     case stopping
+    /// Decoding a file the user handed over. Record is disabled; Cancel keeps
+    /// what has been committed so far.
+    case importing
   }
 
   // MARK: - Observable state
@@ -44,12 +47,20 @@ final class RealTimeWhisper {
   var canStop: Bool { state == .recording || state == .paused }
   /// True while the final flush is running.
   var isBusy: Bool { state == .stopping }
+  /// 0…1 while `state == .importing`.
+  private(set) var importProgress: Double = 0
+  /// The file being transcribed, while `state == .importing`, and the source
+  /// of the transcript on screen afterwards.
+  private(set) var importedFile: ImportedFile?
   /// Set while paused: whether the user paused or the system did (a call,
   /// Siri, an alarm). Only a system pause is resumed automatically.
   private(set) var pauseReason: PauseReason?
 
   /// Committed text. This is what gets saved, copied and shared.
   var transcribedText = ""
+  /// Timed pieces of `transcribedText`, filled when a take finishes. Empty
+  /// while recording and for engines that report no timings.
+  private(set) var segments: [TranscriptSegment] = []
   /// The window still being decoded, rendered dimmed.
   private(set) var provisionalText = ""
   private(set) var provisionalConfidence: Float = 0
@@ -74,6 +85,9 @@ final class RealTimeWhisper {
   var currentModel: WhisperModel = .selected
   var currentEngine: TranscriptionEngine = .selected
   var modelContext: ModelContext?
+  /// The history entry the last take was saved to (Pro), so a summary made
+  /// on the recording screen can be stored with it.
+  private(set) var lastSaved: Recording?
 
   // MARK: - Collaborators
 
@@ -90,7 +104,13 @@ final class RealTimeWhisper {
   private var activeOptions: TranscriptionOptions = .current
 
   private let maxAudioLevels = 100
-  private var recordingStartTime: Date?
+  private(set) var recordingStartTime: Date?
+  /// The import's streaming core, held so Cancel can abort the decode.
+  private var importCore: StreamingTranscriber?
+  private var importCancelled = false
+  /// Stands in for the loaded whisper context when transcribing a file; tests
+  /// inject a fake so the import path runs without a model.
+  private let fileTranscriberOverride: WindowTranscribing?
   /// Elapsed time accumulated before the current run, so pause is honest.
   private var elapsedBase: TimeInterval = 0
   private var segmentStart: Date?
@@ -115,9 +135,11 @@ final class RealTimeWhisper {
     )? = nil,
     sessionEvents: AsyncStream<AudioSessionEvent>? = nil,
     noAudioAfter: TimeInterval = 5,
-    keepScreenAwake: ((Bool) -> Void)? = nil
+    keepScreenAwake: ((Bool) -> Void)? = nil,
+    fileTranscriber: WindowTranscribing? = nil
   ) {
     self.loader = loader
+    self.fileTranscriberOverride = fileTranscriber
     self.keepScreenAwake = keepScreenAwake ?? { awake in
       #if os(iOS)
       UIApplication.shared.isIdleTimerDisabled = awake
@@ -195,11 +217,13 @@ final class RealTimeWhisper {
     // Everything per-take is reset in one place, so adding a field cannot
     // quietly leave last take's value on screen.
     transcribedText = ""
+    segments = []
     provisionalText = ""
     provisionalConfidence = 0
     detectedLanguageCode = nil
     errorMessage = nil
     pauseReason = nil
+    lastSaved = nil
     audioLevels = []
     noAudio = false
     silenceWatch.reset(at: Date())
@@ -207,6 +231,8 @@ final class RealTimeWhisper {
     elapsedBase = 0
     recordingStartTime = Date()
     segmentStart = Date()
+    importedFile?.discard()
+    importedFile = nil
 
     let session = makeSession(currentEngine, activeOptions, whisperContext)
     self.session = session
@@ -318,6 +344,7 @@ final class RealTimeWhisper {
 
     if let session {
       transcribedText = await session.finish()
+      segments = await session.finalSegments()
     }
     await teardown()
 
@@ -406,6 +433,138 @@ final class RealTimeWhisper {
     timerTask = nil
   }
 
+  /// The Clear button. One place, so the timings cannot outlive the text.
+  func clearTranscript() {
+    transcribedText = ""
+    segments = []
+    importedFile?.discard()
+    importedFile = nil
+  }
+
+  /// Shows a message on the error line, for failures that happen outside
+  /// the recorder (a file that could not be opened).
+  func report(_ message: String) {
+    errorMessage = message
+  }
+
+  // MARK: - Files
+
+  enum ImportFailure: LocalizedError {
+    case busy
+    var errorDescription: String? { "Stop the recording before transcribing a file." }
+  }
+
+  /// Transcribes an audio or video file with the loaded Whisper model. Apple
+  /// Speech has no file path here, so the setting is ignored for imports;
+  /// the language and vocabulary settings still apply.
+  ///
+  /// Runs to completion or until `cancelImport()`. The transcript lands in
+  /// `transcribedText` and `segments` like a live take, and Pro saves it to
+  /// History with the file's name.
+  func transcribe(file: ImportedFile) async {
+    guard state == .idle else {
+      errorMessage = ImportFailure.busy.errorDescription
+      return
+    }
+    guard let transcriber: WindowTranscribing = fileTranscriberOverride ?? whisperContext else {
+      errorMessage = ModelError.notLoaded.errorDescription
+      return
+    }
+
+    transcribedText = ""
+    segments = []
+    provisionalText = ""
+    provisionalConfidence = 0
+    detectedLanguageCode = nil
+    errorMessage = nil
+    pauseReason = nil
+    audioLevels = []
+    noAudio = false
+    activeOptions = .current
+    elapsedBase = 0
+    elapsedTime = 0
+    recordingStartTime = Date()
+    lastSaved = nil
+    importedFile?.discard()
+    importedFile = file
+    importProgress = 0
+    importCancelled = false
+
+    state = .importing
+
+    let core = StreamingTranscriber(transcriber: transcriber, options: activeOptions)
+    importCore = core
+    let mirror = Task { [weak self] in
+      for await update in core.updates {
+        guard let self else { return }
+        switch update {
+        case .transcript(let transcript):
+          self.transcribedText = transcript.committed
+          self.provisionalText = transcript.provisional
+        case .detectedLanguage(let code):
+          if self.activeOptions.language == .automatic { self.detectedLanguageCode = code }
+        case .failed(let message):
+          self.errorMessage = message
+        case .level, .stopped:
+          break
+        }
+      }
+    }
+
+    let reader = AudioFileReader(url: file.url)
+    var failure: String?
+    var duration: TimeInterval = 0
+    do {
+      duration = try await reader.duration()
+      var fed = 0
+      for try await chunk in reader.samples() {
+        if importCancelled { break }
+        await core.feed(chunk)
+        fed += chunk.count
+        if duration > 0 {
+          importProgress = min(1, Double(fed) / AudioFileReader.sampleRate / duration)
+        }
+        // Keeps the elapsed line meaningful: how much of the file is done.
+        elapsedTime = Double(fed) / AudioFileReader.sampleRate
+      }
+    } catch {
+      failure = error.localizedDescription
+    }
+
+    if importCancelled {
+      transcribedText = await core.currentTranscript.committed
+      segments = await core.currentTranscript.committedSegments
+    } else {
+      transcribedText = await core.finish()
+      segments = await core.currentTranscript.committedSegments
+      importProgress = 1
+      await mirror.value
+    }
+    mirror.cancel()
+    importCore = nil
+    provisionalText = ""
+    provisionalConfidence = 0
+    if duration > 0, !importCancelled { elapsedTime = duration }
+    state = .idle
+
+    if let failure {
+      errorMessage = failure
+    } else if transcribedText.isEmpty, !importCancelled {
+      errorMessage = "No speech was found in \(file.displayName)."
+    }
+
+    #if PRO_VERSION
+    if !importCancelled { saveImport(file, duration: duration) }
+    #endif
+  }
+
+  /// Stops the decode and keeps the text committed so far.
+  func cancelImport() async {
+    guard state == .importing else { return }
+    importCancelled = true
+    await importCore?.cancel()
+  }
+
   /// Elapsed time formatted mm:ss for the recording screen.
   var formattedElapsedTime: String {
     let total = Int(elapsedTime)
@@ -426,16 +585,39 @@ final class RealTimeWhisper {
       // Measured time, not wall clock at save: the flush can take seconds, and
       // paused stretches should not count.
       duration: elapsedTime,
-      transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
+      transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines),
+      segments: segments
     )
 
     modelContext.insert(recording)
 
     do {
       try modelContext.save()
+      lastSaved = recording
       autoTitle(recording, in: modelContext)
     } catch {
       print("Error saving recording: \(error.localizedDescription)")
+    }
+  }
+
+  private func saveImport(_ file: ImportedFile, duration: TimeInterval) {
+    guard let modelContext,
+          !transcribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    let recording = Recording(
+      timestamp: recordingStartTime ?? Date(),
+      duration: duration > 0 ? duration : elapsedTime,
+      transcriptText: transcribedText.trimmingCharacters(in: .whitespacesAndNewlines),
+      title: file.suggestedTitle,
+      segments: segments,
+      sourceFileName: file.displayName
+    )
+    modelContext.insert(recording)
+    do {
+      try modelContext.save()
+      lastSaved = recording
+      autoTitle(recording, in: modelContext)
+    } catch {
+      print("Error saving import: \(error.localizedDescription)")
     }
   }
 

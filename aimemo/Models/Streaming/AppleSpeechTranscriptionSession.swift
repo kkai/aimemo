@@ -30,6 +30,11 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
   private var transcript = LiveTranscript()
   /// True between a start/resume and the pause/finish that commits that run.
   private var runIsOpen = false
+  /// Recorded seconds before the current run, and when the run began. Apple
+  /// Speech times segments from the start of each recognition request, and
+  /// capture runs in real time, so wall-clock run length is audio length.
+  private var recordedBeforeRun: TimeInterval = 0
+  private var runStartedAt: Date?
   private var mirror: Task<Void, Never>?
   private var restartPolicy = SpeechRestartPolicy()
   private let now: () -> Date
@@ -115,7 +120,9 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
 
   private func openRun() {
     runIsOpen = true
-    restartPolicy.runStarted(at: now())
+    let start = now()
+    runStartedAt = start
+    restartPolicy.runStarted(at: start)
   }
 
   /// The recognizer ended a run on its own while capture is still running:
@@ -159,7 +166,41 @@ final class AppleSpeechTranscriptionSession: LiveTranscriptionSession {
     transcript.clearProvisional()
     guard runIsOpen else { return }
     runIsOpen = false
-    transcript.commit(recognizer.transcribedText)
+    let offset = recordedBeforeRun
+    let timed = recognizer.segments.compactMap { segment -> TranscriptSegment? in
+      let text = LiveTranscript.normalize(segment.text)
+      guard !text.isEmpty else { return nil }
+      return TranscriptSegment(text: text, start: offset + segment.start, end: offset + segment.end)
+    }
+    transcript.commit(recognizer.transcribedText, segments: Self.merged(timed))
+    if let runStartedAt {
+      recordedBeforeRun += max(0, now().timeIntervalSince(runStartedAt))
+    }
+    runStartedAt = nil
+  }
+
+  func finalSegments() async -> [TranscriptSegment] { transcript.committedSegments }
+
+  /// Apple Speech times every word. Subtitles want phrases, so words are
+  /// grouped into runs of up to about five seconds or a sentence end.
+  nonisolated static func merged(_ words: [TranscriptSegment], maxDuration: TimeInterval = 5) -> [TranscriptSegment] {
+    var result: [TranscriptSegment] = []
+    var open: TranscriptSegment?
+    for word in words {
+      if var current = open {
+        let endsSentence = current.text.last.map { ".!?".contains($0) } ?? false
+        if !endsSentence, word.end - current.start <= maxDuration {
+          current.text = LiveTranscript.join(current.text, word.text)
+          current.end = max(current.end, word.end)
+          open = current
+          continue
+        }
+        result.append(current)
+      }
+      open = word
+    }
+    if let open { result.append(open) }
+    return result
   }
 
   enum SessionError: Error { case notAuthorized }

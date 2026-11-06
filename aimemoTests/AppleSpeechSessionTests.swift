@@ -14,6 +14,7 @@ import Testing
 @MainActor
 final class FakeSpeechRecognizer: SpeechRecognizing {
   var transcribedText = ""
+  var segments: [TranscriptSegment] = []
   var isRecording = false
   var audioLevels: [Float] = []
   var onRunEnded: ((SpeechRunEnd) -> Void)?
@@ -51,6 +52,10 @@ final class FakeSpeechRecognizer: SpeechRecognizing {
 
   /// What the recogniser has heard so far in this run.
   func hear(_ text: String) { transcribedText = text }
+  func hear(_ text: String, at start: TimeInterval, for duration: TimeInterval) {
+    transcribedText = text
+    segments = [TranscriptSegment(text: text, start: start, end: start + duration)]
+  }
 }
 
 @MainActor
@@ -238,5 +243,27 @@ struct AppleSpeechSessionTests {
     var transcript = LiveTranscript()
     transcript.commit(text)
     return transcript
+  }
+
+  // MARK: - Timings
+
+  @Test func segmentsOfALaterRunAreOffsetByTheRecordedTime() async throws {
+    let clock = Clock()
+    let (session, recognizer) = makeSession(clock: clock)
+    try await session.start()
+    recognizer.hear("First part", at: 0.5, for: 1.5)
+    clock.advance(10)
+    await session.pause()
+    clock.advance(60)  // paused time does not count
+    try await session.resume()
+    recognizer.hear("second part", at: 0.2, for: 1)
+    clock.advance(5)
+    _ = await session.finish()
+
+    let segments = await session.finalSegments()
+    #expect(segments == [
+      TranscriptSegment(text: "First part", start: 0.5, end: 2.0),
+      TranscriptSegment(text: "second part", start: 10.2, end: 11.2),
+    ])
   }
 }

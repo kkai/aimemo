@@ -73,6 +73,10 @@ final class WhisperTranscriptionSession: LiveTranscriptionSession {
     return final
   }
 
+  func finalSegments() async -> [TranscriptSegment] {
+    await core.currentTranscript.committedSegments
+  }
+
   func cancel() async {
     await capture.stop()
     await core.cancel()

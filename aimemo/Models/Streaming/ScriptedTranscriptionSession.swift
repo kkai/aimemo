@@ -59,6 +59,8 @@ final class ScriptedTranscriptionSession: LiveTranscriptionSession {
     return transcript.committed
   }
 
+  func finalSegments() async -> [TranscriptSegment] { transcript.committedSegments }
+
   func cancel() async {
     player?.cancel()
     continuation.finish()

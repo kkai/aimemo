@@ -368,4 +368,91 @@ struct RealTimeWhisperStateTests {
     await recorder.pause()
     #expect(!recorder.noAudio, "a paused take is expected to be silent")
   }
+
+  // MARK: - Files
+
+  nonisolated private static var wavFixture: URL {
+    URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+      .appendingPathComponent("Resources/audio/en.wav")
+  }
+  nonisolated private static var hasWav: Bool { FileManager.default.fileExists(atPath: wavFixture.path) }
+
+  private func makeImporter(_ fake: FakeWindowTranscriber) -> RealTimeWhisper {
+    RealTimeWhisper(makeSession: { _, _, _ in FakeTranscriptionSession() },
+                    sessionEvents: AsyncStream { _ in },
+                    keepScreenAwake: { _ in },
+                    fileTranscriber: fake)
+  }
+
+  @Test(.enabled(if: RealTimeWhisperStateTests.hasWav))
+  func transcribingAFileRunsImportingToIdleWithTimedText() async throws {
+    let fake = FakeWindowTranscriber(texts: ["Hello from a file."], language: "en")
+    let recorder = makeImporter(fake)
+    let file = try ImportedFile.stage(Self.wavFixture)
+    defer { file.discard() }
+
+    await recorder.transcribe(file: file)
+
+    #expect(recorder.state == .idle)
+    #expect(recorder.transcribedText.hasPrefix("Hello from a file."))
+    #expect(!recorder.segments.isEmpty)
+    #expect(recorder.importProgress == 1)
+    #expect(recorder.detectedLanguageCode == "en")
+    #expect(abs(recorder.elapsedTime - 4.67) < 0.1, "elapsed is the file's duration")
+    #expect(recorder.importedFile == file)
+    #expect(recorder.errorMessage == nil)
+  }
+
+  @Test func transcribingAFileIsRefusedWhileRecording() async {
+    let session = FakeTranscriptionSession()
+    let recorder = makeRecorder(session)
+    await recorder.start()
+    await recorder.transcribe(file: ImportedFile(url: URL(fileURLWithPath: "/tmp/x.m4a"), displayName: "x.m4a"))
+    #expect(recorder.state == .recording)
+    #expect(recorder.errorMessage != nil)
+  }
+
+  @Test func anUnreadableFileEndsIdleWithAMessage() async {
+    let fake = FakeWindowTranscriber()
+    let recorder = makeImporter(fake)
+    await recorder.transcribe(file: ImportedFile(url: URL(fileURLWithPath: "/nonexistent/\(UUID()).m4a"),
+                                                 displayName: "gone.m4a"))
+    #expect(recorder.state == .idle)
+    #expect(recorder.errorMessage != nil)
+  }
+
+  @Test func clearDropsTheTimingsWithTheText() async {
+    let session = FakeTranscriptionSession(finalText: "words")
+    session.segments = [TranscriptSegment(text: "words", start: 0, end: 1)]
+    let recorder = makeRecorder(session)
+    await recorder.start()
+    await recorder.stopRecord()
+    #expect(recorder.segments.count == 1)
+    recorder.clearTranscript()
+    #expect(recorder.transcribedText.isEmpty)
+    #expect(recorder.segments.isEmpty)
+  }
+
+  #if PRO_VERSION
+  @Test(.enabled(if: RealTimeWhisperStateTests.hasWav))
+  func anImportIsSavedWithItsFileName() async throws {
+    let container = try ModelContainer(
+      for: Recording.self,
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let fake = FakeWindowTranscriber(texts: ["Saved from a file."])
+    let recorder = makeImporter(fake)
+    recorder.modelContext = container.mainContext
+    let file = try ImportedFile.stage(Self.wavFixture)
+    defer { file.discard() }
+
+    await recorder.transcribe(file: file)
+
+    let saved = try container.mainContext.fetch(FetchDescriptor<Recording>())
+    #expect(saved.count == 1)
+    #expect(saved.first?.sourceFileName == "en.wav")
+    #expect(saved.first?.title == "en")
+    #expect(saved.first?.segments.isEmpty == false)
+    #expect(recorder.lastSaved === saved.first)
+  }
+  #endif
 }

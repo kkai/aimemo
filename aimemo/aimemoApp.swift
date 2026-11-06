@@ -10,8 +10,15 @@ import SwiftData
 
 @main
 struct aimemoApp: App {
-  @State private var audioProcessor = LaunchOptions.makeRecorder()
+  @State private var audioProcessor: RealTimeWhisper
   private let modelContainer = LaunchOptions.makeModelContainer()
+
+  init() {
+    let recorder = LaunchOptions.makeRecorder()
+    _audioProcessor = State(initialValue: recorder)
+    // Siri and Shortcuts reach the recorder through the bridge.
+    RecorderIntentBridge.shared.recorder = recorder
+  }
 
   var body: some Scene {
     WindowGroup {

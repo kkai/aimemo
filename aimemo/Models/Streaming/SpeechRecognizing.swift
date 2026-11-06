@@ -24,6 +24,9 @@ protocol SpeechRecognizing: AnyObject {
   /// Cumulative text for the current run. Cleared by `startRecording()` and
   /// `restartRecognition()`.
   var transcribedText: String { get }
+  /// Timed pieces of `transcribedText`, seconds from the start of the current
+  /// run. Cleared with it.
+  var segments: [TranscriptSegment] { get }
   /// True while capture runs, including between a run ending by itself and
   /// the restart.
   var isRecording: Bool { get }

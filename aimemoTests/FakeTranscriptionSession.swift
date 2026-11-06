@@ -17,6 +17,8 @@ final class FakeTranscriptionSession: LiveTranscriptionSession {
 
   /// What finish() hands back as the complete transcript.
   var finalText: String
+  /// What finalSegments() hands back.
+  var segments: [TranscriptSegment] = []
   /// Thrown by start(), to exercise the failure path.
   var startError: Error?
   /// Thrown by resume(), as when the input is still held by a call.
@@ -57,6 +59,8 @@ final class FakeTranscriptionSession: LiveTranscriptionSession {
     continuation.finish()
     return finalText
   }
+
+  func finalSegments() async -> [TranscriptSegment] { segments }
 
   func cancel() async {
     cancelCount += 1

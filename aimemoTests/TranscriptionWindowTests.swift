@@ -253,4 +253,33 @@ struct TranscriptionWindowTests {
     }
     #expect(windows >= 2, "expected the backlog to need multiple windows, got \(windows)")
   }
+
+  // MARK: - Timeline offsets
+
+  @Test func aClosedWindowKnowsWhereItsSpeechBegan() {
+    var window = TranscriptionWindow(policy: Self.policy)
+    let signal = TestSignals.silence(seconds: 3) + TestSignals.speech(seconds: 2)
+      + TestSignals.silence(seconds: 1)
+    var decision: TranscriptionWindow.Decision = .wait
+    TestSignals.feed(signal, chunk: 1024) { decision = window.append($0) }
+    guard case .commit(let reason) = decision else { Issue.record("expected a commit"); return }
+    let closed = window.close(reason: reason)
+    // Leading silence is discarded from the payload but counted on the clock.
+    #expect(abs(closed.start - 3) < 0.05)
+    #expect(abs(window.ingestedDuration - 6) < 0.05)
+  }
+
+  @Test func theSecondWindowStartsAfterTheFirst() {
+    var window = TranscriptionWindow(policy: Self.policy)
+    let burst = TestSignals.speech(seconds: 2) + TestSignals.silence(seconds: 1)
+    var starts: [TimeInterval] = []
+    TestSignals.feed(burst + burst, chunk: 1024) {
+      if case .commit(let reason) = window.append($0) {
+        starts.append(window.close(reason: reason).start)
+      }
+    }
+    #expect(starts.count == 2)
+    #expect(abs(starts[0]) < 0.05)
+    #expect(abs(starts[1] - 3) < 0.1)
+  }
 }

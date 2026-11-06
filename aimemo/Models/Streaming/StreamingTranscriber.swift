@@ -67,6 +67,15 @@ actor StreamingTranscriber {
     sampleContinuation.yield(samples)
   }
 
+  /// Back-pressured sibling of `ingest`, for audio that is already on disk:
+  /// the caller waits until the chunk has been windowed and, when a window
+  /// closed, decoded. A one-hour file therefore never sits in memory as floats.
+  /// Do not mix with `start()`; a file is fed, not pumped.
+  func feed(_ samples: [Float]) async {
+    guard !samples.isEmpty else { return }
+    await handle(samples)
+  }
+
   /// Begins consuming ingested audio.
   func start() {
     guard pump == nil else { return }
@@ -115,7 +124,8 @@ actor StreamingTranscriber {
         )
       }
 
-      transcript.commit(result.text)
+      transcript.commit(result.text,
+                        segments: TranscriptSegment.fromWindow(result, offset: closed.start))
 
       if let language = result.detectedLanguageCode, !reportedLanguage {
         reportedLanguage = true

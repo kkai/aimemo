@@ -64,6 +64,30 @@ struct RecordingTests {
   @Test func initAssignsUniqueIDs() {
     #expect(makeRecording().id != makeRecording().id)
   }
+
+  // MARK: - Timings
+
+  @Test func segmentsRoundTripThroughTheStoredData() {
+    let segments = [TranscriptSegment(text: "hello", start: 0.5, end: 1.25)]
+    let recording = Recording(timestamp: .now, duration: 2, transcriptText: "hello", segments: segments)
+    #expect(recording.segments == segments)
+    #expect(recording.segmentsData != nil)
+    recording.segments = []
+    #expect(recording.segmentsData == nil)
+    #expect(makeRecording().segments.isEmpty, "a 2.5 recording has no timings")
+  }
+
+  @Test func exportableCarriesEverything() {
+    let recording = Recording(timestamp: .now, duration: 9, transcriptText: "t", title: "T",
+                              summary: "S", segments: [TranscriptSegment(text: "t", start: 0, end: 1)],
+                              sourceFileName: "f.m4a")
+    let e = recording.exportable
+    #expect(e.title == "T")
+    #expect(e.summary == "S")
+    #expect(e.sourceFileName == "f.m4a")
+    #expect(e.segments.count == 1)
+    #expect(e.supports(.srt))
+  }
 }
 
 @MainActor

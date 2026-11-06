@@ -16,9 +16,17 @@ import UniformTypeIdentifiers
 struct RecordingView: View {
   @Environment(RealTimeWhisper.self) var audioProcessor
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.modelContext) private var modelContext
 
   @State private var showingSettings = false
   @State private var showingHistory = false
+  @State private var showingFilePicker = false
+  @State private var intents = RecorderIntentBridge.shared
+
+  /// The summary of the transcript on screen. Cleared when a new take or
+  /// import starts.
+  @State private var summary: String?
+  @State private var summaryGenerator = SummaryGenerator()
 
   /// The wordmark keeps its 40 pt look at the default size and scales from it.
   @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 40
@@ -35,8 +43,22 @@ struct RecordingView: View {
     case .recording: return .recording
     case .paused: return .paused(audioProcessor.pauseReason)
     case .stopping: return .finishing
+    case .importing: return .importing(audioProcessor.importProgress)
     case .idle: return .complete
     }
+  }
+
+  /// What the Share menu and the exporters get: the transcript on screen
+  /// with its timings and summary.
+  private var export: TranscriptExport {
+    TranscriptExport(
+      title: nil,
+      date: audioProcessor.recordingStartTime ?? Date(),
+      duration: audioProcessor.elapsedTime,
+      text: audioProcessor.displayText,
+      segments: audioProcessor.segments,
+      summary: summary,
+      sourceFileName: audioProcessor.importedFile?.displayName)
   }
 
   var body: some View {
@@ -45,6 +67,32 @@ struct RecordingView: View {
                      condition: Self.isPauseOrResume)
     .onChange(of: audioProcessor.state) { old, new in
       announce(from: old, to: new)
+      if new == .recording || new == .importing { summary = nil }
+    }
+    // An intent asked for something; act once the scene can run audio.
+    .onChange(of: intents.pending) { _, _ in runPendingIntent() }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active { runPendingIntent() }
+    }
+    .onAppear {
+      runPendingIntent()
+      #if DEBUG
+      if let url = LaunchOptions.importFileAtLaunch, audioProcessor.state == .idle,
+         audioProcessor.importedFile == nil {
+        importFile(at: url)
+      }
+      #endif
+    }
+    .fileImporter(isPresented: $showingFilePicker,
+                  allowedContentTypes: [.audio, .movie],
+                  allowsMultipleSelection: false) { result in
+      switch result {
+      case .success(let urls):
+        guard let url = urls.first else { return }
+        importFile(at: url)
+      case .failure(let error):
+        audioProcessor.report(error.localizedDescription)
+      }
     }
     .onChange(of: audioProcessor.errorMessage) { _, message in
       if let message { AccessibilityNotification.Announcement(message).post() }
@@ -147,6 +195,39 @@ struct RecordingView: View {
     }
 
     transcriptCard
+
+    if audioProcessor.state == .idle, !audioProcessor.transcribedText.isEmpty {
+      SummaryCard(transcript: audioProcessor.transcribedText, summary: $summary,
+                  generator: summaryGenerator) { text in
+        // Pro: the take was saved when it stopped; keep its summary with it.
+        if let saved = audioProcessor.lastSaved {
+          saved.summary = text
+          try? modelContext.save()
+        }
+      }
+    }
+  }
+
+  /// Copies the picked file inside the sandbox, then hands it to the recorder.
+  private func importFile(at url: URL) {
+    do {
+      let file = try ImportedFile.stage(url)
+      Task { await audioProcessor.transcribe(file: file) }
+    } catch {
+      audioProcessor.report(error.localizedDescription)
+    }
+  }
+
+  /// Carries out what Siri or a shortcut asked for, once the scene is active.
+  private func runPendingIntent() {
+    guard scenePhase == .active, intents.pending != nil, let request = intents.take() else { return }
+    switch request {
+    case .startRecording:
+      guard audioProcessor.state == .idle else { return }
+      Task { await audioProcessor.start() }
+    case .transcribe(let file):
+      Task { await audioProcessor.transcribe(file: file) }
+    }
   }
 
 
@@ -157,6 +238,10 @@ struct RecordingView: View {
       CircleIconButton(systemName: "clock.arrow.circlepath", label: "History") { showingHistory = true }
       #endif
       Spacer()
+      CircleIconButton(systemName: "doc.badge.plus", label: "Transcribe a file") {
+        showingFilePicker = true
+      }
+      .disabled(audioProcessor.state != .idle)
     }
     .padding(.horizontal, 20)
     .padding(.top, 8)
@@ -213,16 +298,10 @@ struct RecordingView: View {
         }
         // Sharing previously required saving first, which the free app never
         // does - so a free user could only ever copy-paste out of the app.
-        ShareLink(item: audioProcessor.displayText) {
-          HStack(spacing: 8) {
-            Image(systemName: "square.and.arrow.up")
-            Text("Share")
-          }
-          .actionButtonStyle(tint: Theme.accent)
-        }
-        .buttonStyle(.plain)
+        ShareTranscriptMenu(export: export)
         ActionButton(title: "Clear", systemName: "trash", tint: Theme.danger) {
-          audioProcessor.transcribedText = ""
+          audioProcessor.clearTranscript()
+          summary = nil
         }
       }
     }
@@ -274,7 +353,21 @@ struct RecordingView: View {
         .accessibilityHidden(true)
       recordButton
       Group {
-        if audioProcessor.canStop {
+        if audioProcessor.state == .importing {
+          Button {
+            Task { await audioProcessor.cancelImport() }
+          } label: {
+            Image(systemName: "xmark")
+              .font(.title3.weight(.semibold))
+              .foregroundStyle(Theme.textPrimary)
+              .frame(width: 56, height: 56)
+              .background(Circle().fill(Theme.surface))
+              .overlay(Circle().stroke(Theme.surfaceBorder, lineWidth: 1))
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Cancel transcription")
+          .transition(.opacity)
+        } else if audioProcessor.canStop {
           PauseResumeButton(isPaused: audioProcessor.state == .paused) {
             Task {
               if audioProcessor.state == .paused {
@@ -286,12 +379,16 @@ struct RecordingView: View {
           }
           .transition(.opacity)
         } else {
-          Color.clear.accessibilityHidden(true)
+          // Height 1, like the left slot: an unconstrained Color.clear is
+          // greedy and the VStack then split the screen between it and the
+          // transcript, which clipped the card to two lines after every take.
+          Color.clear.frame(height: 1).accessibilityHidden(true)
         }
       }
       .frame(width: 64)
     }
     .animation(.easeInOut(duration: 0.2), value: audioProcessor.canStop)
+    .animation(.easeInOut(duration: 0.2), value: audioProcessor.state == .importing)
   }
 
   private static func isPauseOrResume(_ old: RealTimeWhisper.State,
@@ -309,6 +406,8 @@ struct RecordingView: View {
       message = RecordingStatus.paused(audioProcessor.pauseReason).label
     case (.paused, .recording): message = "Recording resumed"
     case (.stopping, .idle): message = "Stopped. The transcript is ready."
+    case (.idle, .importing): message = "Transcribing the file"
+    case (.importing, .idle): message = "File transcribed. The transcript is ready."
     default: message = nil
     }
     if let message { AccessibilityNotification.Announcement(message).post() }
@@ -320,6 +419,12 @@ struct RecordingView: View {
   }
 
   private var recordButton: some View {
+    importAwareRecordButton
+      .disabled(audioProcessor.state == .importing)
+      .opacity(audioProcessor.state == .importing ? 0.4 : 1)
+  }
+
+  private var importAwareRecordButton: some View {
     AnimatedRecordButton(
       isRecording: Binding(
         get: { audioProcessor.canStop },
