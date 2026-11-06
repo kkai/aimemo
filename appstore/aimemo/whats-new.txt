@@ -1,9 +1,12 @@
-ai-Memo 2.5 gives you control over the language.
+ai-Memo 2.6 is about trust: the recording keeps going, and you keep what it heard.
 
-• Translate to English: speak any of the roughly 99 supported languages and get English text back. It still runs on your device.
-• Language picker: let Whisper detect the language, or pin one when you record short clips.
-• The detected language now shows next to the recording timer.
-• Custom vocabulary: add the names, jargon and acronyms it used to guess at.
-• The download is now around a tenth of its previous size.
-• You can share straight from the recording screen, and the app works in landscape on iPhone and iPad.
-• Long recordings: transcription now runs in short windows, so memory use stays flat and the live text keeps up on meeting-length recordings.
+• Transcribe a file: pick an audio or video file in the app, or share one to ai-Memo from Files, Voice Memos or Mail.
+• Pause and resume while you record.
+• A phone call, Siri or an alarm pauses the recording instead of ending it. Switching headphones no longer stops it either.
+• Apple Speech used to stop by itself after about a minute. It now carries on.
+• The screen stays awake while you record, and the app tells you when no sound reaches the microphone.
+• Share as Markdown with timestamps, or as SRT and WebVTT subtitles for video editing.
+• Summary: on an iPhone or iPad with Apple Intelligence, a summary card appears under the finished transcript.
+• Siri and Shortcuts: "Start a memo", "Stop the memo" and "Transcribe a file". Put one on the Action button or in Control Center.
+• VoiceOver, Dynamic Type and bigger touch targets throughout.
+• Fixed: the transcript shrank to two lines after a take.

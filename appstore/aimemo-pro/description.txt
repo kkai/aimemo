@@ -16,6 +16,14 @@ All four are multilingual and ship inside the app, so there is nothing to downlo
 RECORDING HISTORY
 Transcripts are saved automatically. Search them, open them again, and swipe or long-press to share or copy one.
 
+TRANSCRIBE A FILE
+Pick an audio or video file, or share one to ai-Memo Pro from Files, Voice Memos or Mail. Whisper transcribes it on the device, with progress and a Cancel button. The transcript is saved to your history under the file's name.
+
+RECORDINGS THAT SURVIVE
+- Pause and resume
+- A call, Siri or an alarm pauses the recording and it resumes afterwards
+- The screen stays awake, and the app tells you when no sound reaches the microphone
+
 LANGUAGES
 - Automatic detection, or pin a language when you record short clips
 - Translate to English: speak any supported language and get English text, still offline
@@ -26,7 +34,10 @@ Whisper runs entirely on your device and needs no internet connection, so your a
 
 ALSO INCLUDED
 - Live waveform and recording timer, with the detected language next to it
-- Copy with one tap, or share from the recording screen
+- Copy with one tap, or share as text, Markdown with timestamps, SRT or WebVTT
+- Summary card on devices with Apple Intelligence
+- Siri and Shortcuts actions: start a memo, stop it, transcribe a file
+- VoiceOver and Dynamic Type
 - Landscape on iPhone and iPad
 - Dark interface
 - Metal GPU acceleration
