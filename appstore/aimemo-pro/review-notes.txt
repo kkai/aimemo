@@ -2,13 +2,13 @@ ai-Memo Pro needs no login and has no in-app purchases.
 
 To test: allow microphone access, tap the red button, speak, tap again to stop. The transcript appears while you speak. Whisper is the default engine and runs entirely on the device, so the app works in airplane mode. Settings has the language picker, Translate to English and the custom vocabulary. The clock icon on the recording screen opens the history, and Settings also has the model picker.
 
-To test file import: tap the document icon at the top of the recording screen and pick any audio or video file, or share a Voice Memos recording to the app. The transcript appears with a progress pill and Cancel.
+To test file import: tap the document icon at the top of the recording screen and pick any audio or video file. The transcript appears with a progress label and a Cancel button. The app is also listed as a handler for audio and video files, so it appears when you share such a file from another app.
 
-Pause is the button beside Stop while recording. The Share button offers text, Markdown, SRT and WebVTT.
+Pause is the button beside Stop while recording. Leaving the app pauses the recording; the app does not record in the background. The Share button offers text, Markdown, and SRT and WebVTT when the transcript has timings.
 
-The Summary card appears only on a device with Apple Intelligence (iOS 26); it uses Apple's on-device Foundation Models framework. The Shortcuts actions are in the Shortcuts app under the app's name.
+The Summary card appears only on a device with Apple Intelligence (iOS 26). It uses Apple's on-device Foundation Models framework. The Shortcuts actions are in the Shortcuts app under the app's name.
 
 The Apple Speech engine (Settings) asks for speech recognition permission the first time it is selected.
 
-The app makes no network requests and collects no data.
+The app itself makes no network requests and collects no data. For languages without an on-device model, iOS may send Apple Speech audio to Apple's servers; Whisper never does.
 Contact: Kai Kunze, kai.kunze@gmail.com

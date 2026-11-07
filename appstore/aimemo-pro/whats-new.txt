@@ -1,12 +1,14 @@
-ai-Memo Pro 2.6 is about trust: the recording keeps going, and you keep what it heard.
+ai-Memo Pro 2.6 adds file transcription and handles interruptions during a recording.
 
-• Transcribe a file: pick an audio or video file in the app, or share one to ai-Memo Pro from Files, Voice Memos or Mail. The transcript lands in your history under the file's name.
+• Transcribe a file: pick an audio or video file in the app, or share one to ai-Memo Pro from another app. The transcript is saved to your history under the file's name.
 • Pause and resume while you record.
-• A phone call, Siri or an alarm pauses the recording instead of ending it. Switching headphones no longer stops it either.
+• A phone call, Siri or an alarm now pauses the recording instead of quietly ending capture. It resumes when iOS allows it, and otherwise the app offers Resume.
+• Switching headphones no longer stops a recording.
+• Leaving the app pauses the recording and tells you why. Keep the app open while you record.
 • Apple Speech used to stop by itself after about a minute. It now carries on.
 • The screen stays awake while you record, and the app tells you when no sound reaches the microphone.
-• Share as Markdown with timestamps, or as SRT and WebVTT subtitles for video editing, from the recording screen and from any saved recording.
-• Summary: on an iPhone or iPad with Apple Intelligence, a summary card appears under the finished transcript and is saved with it.
-• Siri and Shortcuts: "Start a memo", "Stop the memo" and "Transcribe a file". Put one on the Action button or in Control Center.
-• VoiceOver, Dynamic Type and bigger touch targets throughout.
-• Fixed: the transcript shrank to two lines after a take.
+• Share as Markdown with timestamps, or as SRT and WebVTT subtitles. This works from the recording screen and from any saved recording.
+• Summaries: on a device with Apple Intelligence, you can summarize a finished transcript on the device. The summary is saved with the recording.
+• Siri and Shortcuts: Start a Memo, Stop the Memo and Transcribe a File. Shortcuts can put them on the Action button.
+• VoiceOver labels, Dynamic Type and larger touch targets.
+• Fixed: the transcript shrank to two lines after a recording.

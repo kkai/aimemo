@@ -1,6 +1,6 @@
 # ai-Memo 2.6: submission runbook
 
-Staged 2026-11-07 for both SKUs. Everything below is done except the last step, the
+Staged 2026-11-07 for both SKUs, corrected the same day (copy, privacy page, iPad shots). Everything below is done except the last step, the
 outward-facing submit, which is a deliberate choice.
 
 | | ai-Memo | ai-Memo Pro |
@@ -61,14 +61,29 @@ All from the repo root, credentials read from `studio/appstoreconnect/credential
    and a frame every 0.5 s (base finishes 73 s in about 4 s on an M-series Mac); Pro's
    History shot adds `-uiTestSeedHistory` and lets the import save first. Language and
    Settings shots are the 2.5 ones. Uploaded with
-   `AppShip screenshots --bundle-id … --create-version 2.6 --iphone-dir screenshots/<sku>-2.6/iphone --replace`
-   (iPad sets carried over from 2.5). The iPad Pro 12.9 6th-gen simulator is on iOS 17 and
-   cannot run the app, so iPad was not recaptured.
+   `AppShip screenshots --bundle-id … --create-version 2.6 --iphone-dir screenshots/<sku>-2.6/iphone --ipad-dir screenshots/<sku>-2.6/ipad --replace`.
+   iPad shots come the same way from the iOS 18.5 simulator `6BAA0686-A30B-45E5-9335-0B45466D8F7C` (2048×2732). The same-name
+   `213980AE-…` runs iOS 17 and cannot install the app. The years-old `APP_IPHONE_55` and `APP_IPAD_PRO_129` sets were deleted
+   from the 2.6 versions; Apple scales the newer sets down. 2.5 keeps its own copies.
 6. **Attach the build**: `PATCH appStoreVersions/{id}/relationships/build`.
-7. **Readiness gate**: `POST reviewSubmissions` then `POST reviewSubmissionItems`. Both
-   passed first time (no age-rating gaps, screenshots already COMPLETE).
+7. **Readiness gate**: `POST reviewSubmissions` then `POST reviewSubmissionItems`. Screenshots are
+   locked while the item exists (409 "Can't Delete Screenshot while Ready For Review"): `DELETE reviewSubmissionItems/{id}`
+   returns the version to PREPARE_FOR_SUBMISSION, and the item POST can be repeated after assets finish processing.
+   Item ids change when re-added; the submission ids below stay.
+
+## Test state
+
+276 unit tests pass. UI audits: `testFinished` failed once on an unattributed "Potentially inaccessible text" and then passed 3 of 3; the cause was not found. Build 2 predates only DEBUG-only and test changes.
 
 ## To submit
+
+First publish the site, because the privacy page must cover file import and free-app summaries before review:
+
+```bash
+git -C tools/aimemo-site push origin gh-pages
+```
+
+Then:
 
 ```bash
 cd studio/appstoreconnect
@@ -80,9 +95,11 @@ python3 asc.py PATCH reviewSubmissions/213f0bca-1b0c-46b2-b2f7-efec83331cc2 \
 
 Or press Submit on each app's page in App Store Connect.
 
+## Before submitting, on a device
+
+Summary generation on an Apple Intelligence phone (Zelos, an iPhone 12 Pro Max, cannot do this), sharing a file into the app from another app, the Shortcuts actions, a call during a recording. None of these have run on a device, and the listing describes them.
+
 ## After approval
 
 - Push `main` and the `v2.6` tag to `origin`.
-- Push `gh-pages` from `tools/aimemo-site` (commit `3152421` holds the 2.6 landing copy).
-- Device checks still owed: summary generation on an Apple Intelligence phone, "Open in
-  ai-Memo" from Voice Memos, the Shortcuts actions, a call during a recording.
+- 

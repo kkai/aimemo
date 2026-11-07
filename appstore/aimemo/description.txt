@@ -7,12 +7,13 @@ You choose the engine in Settings and can change it at any time.
 - Apple Speech: Apple's built-in speech recognition. It starts quickly and suits short notes.
 
 TRANSCRIBE A FILE
-Pick an audio or video file, or share one to ai-Memo from Files, Voice Memos or Mail. Whisper transcribes it on the device, with progress and a Cancel button.
+Pick an audio or video file, or share one to ai-Memo from another app. Whisper transcribes it on the device and shows its progress. You can cancel at any time.
 
-RECORDINGS THAT SURVIVE
-- Pause and resume
-- A call, Siri or an alarm pauses the recording and it resumes afterwards
-- The screen stays awake, and the app tells you when no sound reaches the microphone
+PAUSE AND INTERRUPTIONS
+- Pause and resume while you record
+- A call, Siri or an alarm pauses the recording. It resumes when iOS allows it, and otherwise the app offers Resume
+- The screen stays awake while you record, and the app tells you when no sound reaches the microphone
+- Keep the app open while you record: leaving it pauses the recording
 
 LANGUAGES
 - Automatic detection, or pin a language when you record short clips
@@ -25,7 +26,7 @@ Whisper runs entirely on your device and needs no internet connection, so your a
 ALSO INCLUDED
 - Live waveform and recording timer, with the detected language next to it
 - Copy with one tap, or share as text, Markdown with timestamps, SRT or WebVTT
-- Summary card on devices with Apple Intelligence
+- On-device summaries on devices with Apple Intelligence
 - Siri and Shortcuts actions: start a memo, stop it, transcribe a file
 - VoiceOver and Dynamic Type
 - Landscape on iPhone and iPad

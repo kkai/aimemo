@@ -134,7 +134,7 @@ final class AccessibilityAuditTests: XCTestCase {
     try audit()
   }
 
-  func testFinishedShareMenuOffersTextAndMarkdown() throws {
+  func testFinishedShareMenuOffersAllFormats() throws {
     launch()
     startRecording()
     app.buttons["Stop recording"].tap()
@@ -142,8 +142,9 @@ final class AccessibilityAuditTests: XCTestCase {
     app.buttons["Share"].firstMatch.tap()
     XCTAssertTrue(app.buttons["Share Text"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["Markdown"].exists)
-    // The scripted session reports no timings, so no subtitle formats.
-    XCTAssertFalse(app.buttons["SRT subtitles"].exists)
+    // The scripted session reports timings, so the subtitle formats are offered.
+    XCTAssertTrue(app.buttons["SRT subtitles"].exists)
+    XCTAssertTrue(app.buttons["WebVTT subtitles"].exists)
   }
 
   // MARK: - Transcribing a file
