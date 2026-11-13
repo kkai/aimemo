@@ -103,7 +103,7 @@ struct SettingsView: View {
           Text("Transcription Engine")
         } footer: {
           if selectedEngine == .appleSpeech {
-            Text("Apple Speech starts quickly. iOS runs it on the device where it supports your language.")
+            Text("Apple Speech starts quickly. iOS runs it on the device where it supports your language; for other languages it sends the audio to Apple. Whisper never sends audio anywhere.")
               .font(.caption)
           } else {
             Text("Whisper runs on your device and works offline. It detects the language by itself.")

@@ -52,7 +52,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access to record speech for voice-to-text transcription.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app uses speech recognition to transcribe your voice recordings to text when using Apple Speech engine.</string>
+	<string>Only for the Apple Speech engine. iOS recognises speech on the device where it can; for other languages it sends the audio to Apple. Whisper never needs this.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

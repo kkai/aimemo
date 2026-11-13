@@ -31,7 +31,7 @@ LANGUAGES
 - Custom vocabulary for names, jargon and acronyms
 
 PRIVACY
-Whisper runs entirely on your device and needs no internet connection, so your audio and text stay on your iPhone or iPad. Apple Speech also runs on the device where iOS supports your language. The app has no account, no ads and no analytics.
+Whisper runs entirely on your device and needs no internet connection, so your audio and text stay on your iPhone or iPad. Apple Speech runs on the device where iOS supports your language; for other languages iOS sends the audio to Apple. The app has no account, no ads and no analytics.
 
 ALSO INCLUDED
 - Live waveform and recording timer, with the detected language next to it
