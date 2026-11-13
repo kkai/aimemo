@@ -52,6 +52,23 @@ struct AudioFileReaderTests {
     #expect(abs(rms(wav) - rms(decoded)) < 0.02)
   }
 
+  /// The reader is pulled, not pushed: stopping after one chunk stops the
+  /// decode, and a fresh pass starts again from the beginning. A pushed
+  /// stream buffered the whole file ahead of Whisper (a long import ran out
+  /// of memory).
+  @Test(.enabled(if: AudioFileReaderTests.canRun))
+  func decodesOnlyWhatIsAskedFor() async throws {
+    let reader = AudioFileReader(url: Self.m4a, chunkDuration: 1)
+    var iterator = reader.samples().makeAsyncIterator()
+    let first = try await iterator.next()
+    #expect(first?.count == 16_000)
+    let second = try await iterator.next()
+    #expect(second?.count == 16_000)
+
+    var again = reader.samples().makeAsyncIterator()
+    #expect(try await again.next() == first)
+  }
+
   @Test func aFileWithoutAudioIsReported() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("not-audio-\(UUID()).txt")
     try "hello".write(to: url, atomically: true, encoding: .utf8)

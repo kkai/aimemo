@@ -11,7 +11,7 @@ import Foundation
 /// Reads a file through `AVAssetReader` with an audio mix output pinned to
 /// 16 kHz mono Float32, so one path handles m4a, mp3, wav, caf, aac, mov and
 /// mp4 and the asset does the resampling. Audio is yielded in chunks of about
-/// `chunkDuration` seconds; a one-hour file never sits in memory as floats.
+/// `chunkDuration` seconds, decoded on demand: memory holds one chunk, not the file.
 struct AudioFileReader: Sendable {
 
   enum ImportError: LocalizedError, Equatable {
@@ -49,79 +49,139 @@ struct AudioFileReader: Sendable {
 
   /// 16 kHz mono samples, in order. Finishes after the last chunk; throws
   /// `ImportError` for files without audio, protected files, or decode failures.
-  func samples() -> AsyncThrowingStream<[Float], Error> {
-    AsyncThrowingStream { continuation in
-      let task = Task.detached(priority: .userInitiated) {
+  ///
+  /// Pull-based: a chunk is decoded only when the loop asks for the next one,
+  /// so memory holds one chunk however long the file is. (It used to be an
+  /// `AsyncThrowingStream` fed by a detached task; the decoder outruns
+  /// Whisper by far, so the stream's unbounded buffer held the whole file,
+  /// ~230 MB of floats per hour, and a long import could be killed.)
+  func samples() -> Chunks {
+    Chunks(url: url, chunkSamples: max(1, Int(chunkDuration * Self.sampleRate)))
+  }
+
+  struct Chunks: AsyncSequence {
+    typealias Element = [Float]
+    let url: URL
+    let chunkSamples: Int
+
+    func makeAsyncIterator() -> Iterator { Iterator(url: url, chunkSamples: chunkSamples) }
+
+    final class Iterator: AsyncIteratorProtocol {
+      private let url: URL
+      private let chunkSamples: Int
+      private var decoder: Decoder?
+      private var finished = false
+
+      init(url: URL, chunkSamples: Int) {
+        self.url = url
+        self.chunkSamples = chunkSamples
+      }
+
+      func next() async throws -> [Float]? {
+        guard !finished else { return nil }
         do {
-          try await Self.read(url: url, chunkSamples: Int(chunkDuration * Self.sampleRate)) { chunk in
-            guard !Task.isCancelled else { return false }
-            continuation.yield(chunk)
-            return true
-          }
-          continuation.finish()
+          try Task.checkCancellation()
+          if decoder == nil { decoder = try await Decoder.open(url: url, chunkSamples: chunkSamples) }
+          let decoder = decoder!
+          // Off the caller's actor: the caller is the main actor.
+          let chunk = try await Task.detached(priority: .userInitiated) { try decoder.nextChunk() }.value
+          if chunk == nil { finish() }
+          return chunk
         } catch {
-          continuation.finish(throwing: error)
+          finish()
+          throw error
         }
       }
-      continuation.onTermination = { _ in task.cancel() }
+
+      private func finish() {
+        finished = true
+        decoder?.cancel()
+        decoder = nil
+      }
     }
   }
 
-  /// Runs the reader loop. `emit` returns false to stop early.
-  private static func read(url: URL, chunkSamples: Int,
-                           emit: @Sendable ([Float]) -> Bool) async throws {
-    let asset = AVURLAsset(url: url)
-    let protected: Bool
-    let tracks: [AVAssetTrack]
-    do {
-      protected = try await asset.load(.hasProtectedContent)
-      tracks = try await asset.loadTracks(withMediaType: .audio)
-    } catch {
-      // AVFoundation's own wording ("Cannot Open", "unknown error -17913")
-      // helps nobody; the reason that matters is that it is not a media file.
-      throw ImportError.unreadable(Self.plainReason(for: error))
-    }
-    if protected { throw ImportError.protectedContent }
-    guard !tracks.isEmpty else { throw ImportError.noAudioTrack }
+  /// One `AVAssetReader` and the samples left over from its last buffer.
+  /// Used by one iterator at a time, one call after another, never
+  /// concurrently, which is what makes the unchecked conformance hold.
+  final class Decoder: @unchecked Sendable {
+    private let reader: AVAssetReader
+    private let output: AVAssetReaderAudioMixOutput
+    private let chunkSamples: Int
+    private var pending: [Float] = []
 
-    let reader: AVAssetReader
-    do {
-      reader = try AVAssetReader(asset: asset)
-    } catch {
-      throw ImportError.unreadable(error.localizedDescription)
+    private init(reader: AVAssetReader, output: AVAssetReaderAudioMixOutput, chunkSamples: Int) {
+      self.reader = reader
+      self.output = output
+      self.chunkSamples = chunkSamples
+      pending.reserveCapacity(chunkSamples)
     }
 
-    let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
-      AVFormatIDKey: kAudioFormatLinearPCM,
-      AVSampleRateKey: sampleRate,
-      AVNumberOfChannelsKey: 1,
-      AVLinearPCMBitDepthKey: 32,
-      AVLinearPCMIsFloatKey: true,
-      AVLinearPCMIsBigEndianKey: false,
-      AVLinearPCMIsNonInterleaved: false,
-    ])
-    output.alwaysCopiesSampleData = false
-    guard reader.canAdd(output) else { throw ImportError.unreadable("Unsupported audio format.") }
-    reader.add(output)
-    guard reader.startReading() else {
-      throw ImportError.unreadable(reader.error?.localizedDescription ?? "The decoder did not start.")
-    }
+    deinit { cancel() }
 
-    var pending: [Float] = []
-    pending.reserveCapacity(chunkSamples)
-    while let buffer = output.copyNextSampleBuffer() {
-      try Task.checkCancellation()
-      pending.append(contentsOf: floats(in: buffer))
-      while pending.count >= chunkSamples {
-        let chunk = Array(pending.prefix(chunkSamples))
-        pending.removeFirst(chunkSamples)
-        guard emit(chunk) else { reader.cancelReading(); return }
+    static func open(url: URL, chunkSamples: Int) async throws -> Decoder {
+      let asset = AVURLAsset(url: url)
+      let protected: Bool
+      let tracks: [AVAssetTrack]
+      do {
+        protected = try await asset.load(.hasProtectedContent)
+        tracks = try await asset.loadTracks(withMediaType: .audio)
+      } catch {
+        // AVFoundation's own wording ("Cannot Open", "unknown error -17913")
+        // helps nobody; the reason that matters is that it is not a media file.
+        throw ImportError.unreadable(AudioFileReader.plainReason(for: error))
       }
+      if protected { throw ImportError.protectedContent }
+      guard !tracks.isEmpty else { throw ImportError.noAudioTrack }
+
+      let reader: AVAssetReader
+      do {
+        reader = try AVAssetReader(asset: asset)
+      } catch {
+        throw ImportError.unreadable(error.localizedDescription)
+      }
+
+      let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
+        AVFormatIDKey: kAudioFormatLinearPCM,
+        AVSampleRateKey: AudioFileReader.sampleRate,
+        AVNumberOfChannelsKey: 1,
+        AVLinearPCMBitDepthKey: 32,
+        AVLinearPCMIsFloatKey: true,
+        AVLinearPCMIsBigEndianKey: false,
+        AVLinearPCMIsNonInterleaved: false,
+      ])
+      output.alwaysCopiesSampleData = false
+      guard reader.canAdd(output) else { throw ImportError.unreadable("Unsupported audio format.") }
+      reader.add(output)
+      guard reader.startReading() else {
+        throw ImportError.unreadable(reader.error?.localizedDescription ?? "The decoder did not start.")
+      }
+      return Decoder(reader: reader, output: output, chunkSamples: chunkSamples)
     }
-    if reader.status == .failed {
-      throw ImportError.unreadable(reader.error?.localizedDescription ?? "Decoding failed.")
+
+    /// The next `chunkSamples` samples (fewer for the last chunk), or nil at the end.
+    func nextChunk() throws -> [Float]? {
+      while pending.count < chunkSamples {
+        let more: Bool = autoreleasepool {
+          guard let buffer = output.copyNextSampleBuffer() else { return false }
+          pending.append(contentsOf: AudioFileReader.floats(in: buffer))
+          return true
+        }
+        if !more { break }
+      }
+      if reader.status == .failed {
+        throw ImportError.unreadable(reader.error?.localizedDescription ?? "Decoding failed.")
+      }
+      guard !pending.isEmpty else { return nil }
+      let count = min(chunkSamples, pending.count)
+      let chunk = Array(pending.prefix(count))
+      pending.removeFirst(count)
+      return chunk
     }
-    if !pending.isEmpty { _ = emit(pending) }
+
+    func cancel() {
+      if reader.status == .reading { reader.cancelReading() }
+    }
   }
 
   /// A sentence for the error line. AVFoundation's failure reason when it has
