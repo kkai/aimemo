@@ -11,7 +11,7 @@ outward-facing submit, which is a deliberate choice.
 | en-US localization | `cc68a36c-922e-4d4a-a9ad-3c4bec8aca7b` | `b3b1cae8-675d-4925-a762-2b7cbfa3b28e` |
 | Attached build | 2.6 (2), `4734d3a3-2066-49bf-aa1d-97e16c981a5a` | 2.6 (2), `e847b926-8ef1-43a0-9487-a1e67eb408dd` |
 | Review submission (draft) | `36ab32c3-2186-4fb5-8d32-d32fa92238d7` | `213f0bca-1b0c-46b2-b2f7-efec83331cc2` |
-| State | READY_FOR_REVIEW, not submitted | READY_FOR_REVIEW, not submitted |
+| State | WAITING_FOR_REVIEW, build 3, submitted 2026-11-13 | WAITING_FOR_REVIEW, build 3, submitted 2026-11-13 |
 | Release type | AFTER_APPROVAL | AFTER_APPROVAL |
 
 Build 1 of each (uploaded a few minutes earlier) lacks `LSSupportsOpeningDocumentsInPlace`
@@ -103,3 +103,17 @@ Summary generation on an Apple Intelligence phone (Zelos, an iPhone 12 Pro Max, 
 
 - Push `main` and the `v2.6` tag to `origin`.
 - 
+
+## Build 3 (2026-11-13)
+
+Build 3 replaced build 2 in both drafts before submission. It adds:
+- File import decodes on demand (`AudioFileReader.samples()` is a pull-based
+  sequence); build 2 queued the whole decoded file ahead of Whisper and a long
+  import could run out of memory.
+- Apple Speech privacy wording scoped in the permission string, the Settings
+  footer and both descriptions (iOS sends audio to Apple for languages it cannot
+  recognise on the device).
+
+Swap recipe: `DELETE reviewSubmissionItems/{id}`, attach the build, re-POST the
+item. The site (gh-pages 13c2023) was pushed and checked live first. Both
+submitted 2026-11-13, WAITING_FOR_REVIEW, release after approval.
